@@ -1,0 +1,18 @@
+I need to build a GIS website, for user to monitor wildfire, 
+do spatial temporal analysis and others. 
+Let's build it.
+
+## Tech Stack
+pnpm manager.
+
+Nextjs, deploy on vercel. 
+
+tailwindcss@4, doc can be found at @https://tailwindcss.com/docs/installation/using-postcss.
+** NOTE ** for tailwindcss4, postcss should use, otherwise it will not work.
+```
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+```
+
+Never fallback to "mock" responses. It's confusing and obsecure my way to debug. I need concrete reasons why it fails, not something fallback to fancy display.
