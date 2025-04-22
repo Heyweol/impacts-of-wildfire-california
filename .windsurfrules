@@ -18,4 +18,6 @@ const config = {
 Never fallback to "mock" responses. It's confusing and obsecure my way to debug. I need concrete reasons why it fails, not something fallback to fancy display.
 
 Remember documents. Any files core changed/added/deleted, update docs/files.md
-Document development progress in docs/development_stage.md
+Document development progress in docs/development_stage.md. These two are also places you should always check first if you haven't already.
+
+Always keep future capability of spatio-temporal analysis in mind. And document 
