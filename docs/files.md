@@ -19,7 +19,7 @@ fire_web/
 │   │   ├── layout.tsx        # Root layout component
 │   │   └── page.tsx          # Main page component (renders the map)
 │   ├── components/
-│   │   ├── MapView.tsx       # Core MapLibre map component
+│   │   ├── MapView.tsx       # Core MapLibre map component. Initializes the map, manages base style changes, and handles adding/removing overlay layers based on `activeLayerIds` prop. **Also includes logic to display popups with details when features in specific interactive layers (like WFIGS fire events) are clicked.**
 │   │   ├── MapWrapper.tsx    # Client component wrapper for dynamic map loading
 │   │   ├── Toolbar.tsx       # Floating vertical toolbar with action buttons
 │   │   ├── BasemapSwitcher.tsx # UI component for selecting different base map styles
@@ -45,14 +45,28 @@ fire_web/
 
 *   **`src/app/page.tsx`**: The main entry point page for the application. Currently, it renders the `MapWrapper`.
 *   **`src/app/layout.tsx`**: The root layout that wraps all pages. Defines the basic HTML structure and includes global styles.
-*   **`src/components/MapView.tsx`**: Contains the core logic for initializing and managing the MapLibre map instance. It uses `useEffect` and `useRef` for map handling.
 *   **`src/components/MapWrapper.tsx`**: A client component (`'use client'`) responsible for dynamically importing `MapView` with SSR disabled (`next/dynamic`). This is necessary because MapLibre interacts with browser-specific APIs.
 *   **`src/components/Toolbar.tsx`**: A client component (`'use client'`) that displays a floating vertical toolbar on the left side of the screen, intended to hold action buttons for different functionalities.
 *   **`src/components/BasemapSwitcher.tsx`**: A UI component, typically shown adjacent to the Toolbar, allowing users to select different base map styles.
 *   **`src/components/LayerSwitcher.tsx`**: A UI component, typically shown adjacent to the Toolbar, allowing users to toggle the visibility of overlay layers.
 *   **`src/components/Legend.tsx`**: A UI component, typically positioned at the bottom-right, that displays legends (usually images fetched via URL) for currently active overlay layers that have a `legendUrl` defined in their configuration.
 *   **`src/config/mapStyles.ts`**: Defines available basemap styles (name, ID, MapLibre style object/URL).
-*   **`src/config/overlayLayers.ts`**: Defines available overlay layers (name, ID, source details, layer styling, initial visibility, optional legend URL). Currently includes US State Outlines, NWS Radar (Base Refl., Comp. Refl., Echo Tops, Precip Type via WMS), and NDFD Temperature Forecasts (Max/Min Day 1-3 via WMS).
+*   **`src/config/overlayLayers.ts`**: 
+    **Description:** Defines the configuration for various map overlay layers that can be toggled by the user. Each layer object specifies its ID, display name, type (e.g., 'tile', 'wms', 'geojson', 'vector', 'raster'), source ID, source definition (URL or MapLibre SourceSpecification), MapLibre layer specification for styling, initial visibility, and optional legend info.
+
+    **Key Contents:**
+    *   Configuration objects for:
+        *   OpenStreetMap base layer (Placeholder/Not implemented via this config currently)
+        *   Satellite imagery (Placeholder/Not implemented via this config currently)
+        *   Active Fire Perimeters (Placeholder)
+        *   US State Outlines (GeoJSON example)
+        *   NWS Radar Layers (WMS examples)
+        *   NDFD Temperature Forecasts (WMS examples)
+        *   US Fire Events (WFIGS - GeoJSON from ArcGIS Feature Service: `https://.../FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson`)
+        *   ~~Past Incidents (USGS GeoJSON - Commented out due to CORS issues with direct client-side fetching)~~~
+    *   Layer options include MapLibre paint properties for styling (e.g., `'circle-radius'`, `'circle-color'`). Popups are generally handled outside this config via map event listeners.
+
+    **Purpose in Application:** Provides the central configuration for all data layers displayed on the map, allowing easy management and toggling of different datasets within the MapLibre framework.
 *   **`src/app/globals.css`**: Contains Tailwind CSS directives (`@tailwind base`, `@tailwind components`, `@tailwind utilities`).
 *   **`tailwind.config.ts`**: Configuration file for Tailwind CSS.
 *   **`postcss.config.mjs`**: Configures PostCSS, primarily used here to enable the Tailwind CSS v4 plugin (`@tailwindcss/postcss`).

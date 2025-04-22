@@ -106,6 +106,25 @@
     - Add more relevant wildfire/environmental data layers.
     - Consider adding functionality to ensure only one radar layer is active at a time (optional).
 
+## Stage 3: Integrate Live Wildfire Data (NIFC)
+
+*   **Goal:** Fetch and display live US wildfire incidents from the National Interagency Fire Center (NIFC).
+*   **Progress:**
+    *   Added a 'US Fire Events' button and layer configuration placeholder in `overlayLayers.ts`.
+    *   Researched NIFC data sources (Open Data Portal, ArcGIS Hub).
+    *   Attempted to find the Feature Service API endpoint (details omitted for brevity).
+    *   **Successfully located the Feature Service URL by querying the ArcGIS item metadata endpoint:** `https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_YearToDate/FeatureServer`.
+    *   Updated `overlayLayers.ts` with the correct URL and refactored to use MapLibre GeoJSON format (instead of Leaflet FeatureLayer).
+    *   Commented out 'Past Incidents (USGS)' layer in `overlayLayers.ts` due to CORS errors preventing client-side fetching.
+    *   Implemented click popups in `MapView.tsx` for the 'US Fire Events (WFIGS)' layer, showing incident details (Name, Size, Discovered, Contained, State).
+    *   Updated documentation (`files.md`, `development_stage.md`).
+*   **Next Steps:**
+    *   Test the 'US Fire Events (WFIGS)' button and popup functionality.
+    *   Refine the marker style (use a proper fire icon instead of basic circles if desired).
+    *   Update the map legend (`Legend.tsx`) to include an entry for fire events.
+    *   Consider performance implications of loading potentially many features (e.g., use clustering or filtering).
+    *   Revisit 'Past Incidents' later if needed, likely requiring a server-side fetch approach.
+
 ## Next Steps
 
 *   Implement header/navigation.

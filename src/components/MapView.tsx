@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import maplibregl, { Map, StyleSpecification } from 'maplibre-gl';
+import maplibregl, { Map, StyleSpecification, MapMouseEvent, MapGeoJSONFeature, Popup } from 'maplibre-gl'; // Import Popup
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { mapStyles, defaultMapStyle } from '@/config/mapStyles';
 import { overlayLayers, getOverlayLayerConfig } from '@/config/overlayLayers'; // Import overlay config
@@ -7,10 +7,17 @@ import { overlayLayers, getOverlayLayerConfig } from '@/config/overlayLayers'; /
 // Define props
 interface MapViewProps {
   activeStyleId: string;
-  activeLayerIds: string[]; // Add prop for active layers
+  activeLayerIds: string[];
+  minIncidentSize: number; // Add filter prop
+  onDataRangeLoad: (min: number, max: number) => void; // Callback for data range
 }
 
-const MapView: React.FC<MapViewProps> = ({ activeStyleId, activeLayerIds }) => {
+const MapView: React.FC<MapViewProps> = ({ 
+  activeStyleId, 
+  activeLayerIds, 
+  minIncidentSize, 
+  onDataRangeLoad 
+}) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<Map | null>(null);
   const [lng] = useState(-98.5795); // Approx center of US
@@ -67,18 +74,169 @@ const MapView: React.FC<MapViewProps> = ({ activeStyleId, activeLayerIds }) => {
         // Wait for the style to load
         currentMap.once('styledata', () => {
             console.log('Base style loaded, applying layer updates.');
-            updateLayers(currentMap, activeLayerIds);
+            updateLayers(currentMap, activeLayerIds, minIncidentSize);
         });
         return;
     }
 
     // If style is already loaded, update layers directly
-    updateLayers(currentMap, activeLayerIds);
+    updateLayers(currentMap, activeLayerIds, minIncidentSize);
 
-  }, [activeLayerIds]); // Re-run only when activeLayerIds changes
+  }, [activeLayerIds, minIncidentSize]); // Re-run only when activeLayerIds or minIncidentSize changes
+
+  // Effect to handle popups and cursor changes for interactive layers
+  useEffect(() => {
+    if (!map.current) return; // Ensure map is initialized
+    const currentMap = map.current;
+    const fireLayerId = 'us-fire-events-wfigs-layer'; // ID of the layer to make interactive
+
+    // --- Click Listener for Popups ---
+    const handleLayerClick = (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
+      if (e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        const properties = feature.properties;
+        const coordinates = (feature.geometry as any).coordinates.slice(); // Type assertion needed
+
+        // Ensure coordinates are numbers and popup doesn't appear over itself
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        // Build popup HTML content
+        let popupContent = `<strong>${properties?.IncidentName || 'Unnamed Incident'}</strong><br>`;
+        if (properties?.FireDiscoveryDateTime) {
+          popupContent += `Discovered: ${new Date(properties.FireDiscoveryDateTime).toLocaleString()}<br>`;
+        }
+        if (properties?.IncidentSize !== null && properties?.IncidentSize !== undefined) {
+          popupContent += `Size: ${properties.IncidentSize.toLocaleString()} acres<br>`;
+        }
+        if (properties?.PercentContained !== null && properties?.PercentContained !== undefined) {
+          popupContent += `Contained: ${properties.PercentContained}%<br>`;
+        }
+        if (properties?.POOState) {
+           popupContent += `State: ${properties.POOState}<br>`;
+        }
+
+        new Popup()
+          .setLngLat(coordinates)
+          .setHTML(popupContent)
+          .addTo(currentMap);
+      }
+    };
+
+    // --- Mouse Enter/Leave for Cursor Change ---
+    const handleMouseEnter = () => {
+        if (currentMap) currentMap.getCanvas().style.cursor = 'pointer';
+    };
+
+    const handleMouseLeave = () => {
+        if (currentMap) currentMap.getCanvas().style.cursor = '';
+    };
+
+    // Attach listeners
+    currentMap.on('click', fireLayerId, handleLayerClick);
+    currentMap.on('mouseenter', fireLayerId, handleMouseEnter);
+    currentMap.on('mouseleave', fireLayerId, handleMouseLeave);
+
+    // Cleanup function
+    return () => {
+      if (currentMap) {
+        currentMap.off('click', fireLayerId, handleLayerClick);
+        currentMap.off('mouseenter', fireLayerId, handleMouseEnter);
+        currentMap.off('mouseleave', fireLayerId, handleMouseLeave);
+        // Reset cursor just in case
+        try {
+           currentMap.getCanvas().style.cursor = '';
+        } catch (e) {
+           // Ignore errors if map canvas is already gone
+        }
+      }
+    };
+
+  }, []); // Empty dependency array ensures this runs once when the map is ready
+
+  // Effect to apply filter when minIncidentSize changes
+  useEffect(() => {
+    if (!map.current) return; // Ensure map is initialized
+    const currentMap = map.current;
+    const fireLayerId = 'us-fire-events-wfigs-layer';
+
+    // Check if the layer exists before trying to set filter
+    if (currentMap.getLayer(fireLayerId)) {
+        // Apply the filter: ['>=', ['get', 'property_name'], value]
+        currentMap.setFilter(fireLayerId, [
+            ">=", 
+            ["coalesce", ["get", "IncidentSize"], 0], // If IncidentSize is null, use 0
+            minIncidentSize
+        ]);
+        console.log(`Applied filter: IncidentSize >= ${minIncidentSize}`);
+    } else {
+        // Layer might not be added yet, filter will be applied when added if source has filter option?
+        // Alternatively, handle filter logic within the addLayer part in updateLayers
+        // For now, just log it.
+        console.log(`Layer ${fireLayerId} not found when trying to apply filter.`);
+    }
+
+  }, [minIncidentSize]); // Re-run only when minIncidentSize changes
+
+  // Effect to calculate and report data range when fire source loads
+  useEffect(() => {
+    if (!map.current) return;
+    const currentMap = map.current;
+    const fireSourceId = 'us-fire-events-wfigs-source'; // Corrected source ID
+
+    const handleDataLoad = (e: any) => {
+      // Check if the event is for our specific source and if it's fully loaded
+      if (e.sourceId === fireSourceId && e.isSourceLoaded) {
+        // Query features (might be performance intensive on very large datasets)
+        const features = currentMap.querySourceFeatures(fireSourceId);
+        
+        let minSize = Infinity;
+        let maxSize = -Infinity;
+        let hasFeatures = false;
+
+        features.forEach(feature => {
+          const size = feature.properties?.IncidentSize;
+          // Only consider valid numbers
+          if (typeof size === 'number' && !isNaN(size)) {
+            hasFeatures = true;
+            minSize = Math.min(minSize, size);
+            maxSize = Math.max(maxSize, size);
+          }
+        });
+
+        // If we found features, report the range; otherwise report 0-0 or keep default?
+        // Reporting 0-0 seems reasonable if no valid data points exist.
+        if (hasFeatures) {
+            console.log(`Calculated IncidentSize range: ${minSize} - ${maxSize}`);
+            onDataRangeLoad(minSize, maxSize);
+        } else {
+            console.log('No valid IncidentSize features found to calculate range.');
+            onDataRangeLoad(0, 0); // Report 0-0 if no valid data
+        }
+
+        // Remove the listener after the first successful range calculation
+        // to prevent resetting the slider on subsequent 'data' events.
+        currentMap.off('data', handleDataLoad);
+      }
+    };
+
+    // Add the listener
+    currentMap.on('data', handleDataLoad);
+
+    // Cleanup
+    return () => {
+      if (currentMap) {
+        try {
+            currentMap.off('data', handleDataLoad);
+        } catch (e) { /* ignore errors if map/listener gone */ }
+      }
+    };
+  // Dependency on onDataRangeLoad ensures stable callback reference is used
+  }, [onDataRangeLoad]); 
 
   // Helper function to manage layer updates
-  const updateLayers = (currentMap: Map, currentActiveLayerIds: string[]) => {
+  const updateLayers = (currentMap: Map, currentActiveLayerIds: string[], currentMinSize: number) => {
     overlayLayers.forEach(layerConfig => {
       // Use the defined sourceId and layerId
       const layerId = layerConfig.layer.id;

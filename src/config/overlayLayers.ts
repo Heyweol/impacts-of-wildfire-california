@@ -294,9 +294,71 @@ export const overlayLayers: OverlayLayerConfig[] = [
   //   visibleInitially: false,
   //   initiallyVisible: false,
   // },
-];
+  {
+    id: 'us-fire-events-wfigs',
+    name: 'US Fire Events (WFIGS)',
+    type: 'geojson',
+    sourceId: 'us-fire-events-wfigs-source',
+    // Source: ArcGIS Feature Service query returning GeoJSON for 2025 incidents
+    sourceDefinition: 'https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_YearToDate/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson',
+    layer: {
+      id: 'us-fire-events-wfigs-layer',
+      type: 'circle', // Use circle markers for points
+      source: 'us-fire-events-wfigs-source',
+      paint: {
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['get', 'IncidentSize'], // Adjust radius based on IncidentSize property
+          0, 2,    // Size 0 acres -> radius 2
+          100, 4,  // Size 100 acres -> radius 4
+          1000, 8, // Size 1000 acres -> radius 8
+          10000, 12 // Size 10000+ acres -> radius 12
+        ],
+        'circle-color': '#FF4500', // Orangey-red color for fire
+        'circle-opacity': 0.7,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#FFFFFF'
+      }
+      // Note: Popups need to be handled separately using map.on('click', layerId, ...)
+    },
+    visibleInitially: false,
+    // requiresTime: false // Future: could filter by FireDiscoveryDateTime
+  },
+  // {
+  //   id: 'pastIncidents-usgs',
+  //   name: 'Past Incidents (USGS - Last Year)',
+  //   type: 'geojson',
+  //   sourceId: 'pastIncidents-usgs-source',
+  //   // NOTE: This USGS endpoint (https://wildfire.cr.usgs.gov/...) frequently causes CORS errors
+  //   // when accessed directly from a browser client.
+  //   // It's likely not configured to allow cross-origin requests from web applications.
+  //   // To use this data, it would likely need to be fetched server-side (e.g., via a Next.js API route)
+  //   // or through a dedicated CORS proxy.
+  //   sourceDefinition: 'https://wildfire.cr.usgs.gov/arcgis/rest/services/geojson/USGS_Wildfires_Past_Year/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson',
+  //   layer: {
+  //     id: 'pastIncidents-usgs-layer',
+  //     type: 'circle',
+  //     source: 'pastIncidents-usgs-source',
+  //     paint: {
+  //       'circle-color': '#FFA07A', // Light Salmon color
+  //       'circle-radius': [
+  //         'interpolate',
+  //         ['linear'],
+  //         ['get', 'IncidentSize'], // Example: Adjust radius based on size if available
+  //         0, 2,
+  //         100, 4,
+  //         1000, 8,
+  //         10000, 12
+  //       ],
+  //       'circle-opacity': 0.6,
+  //     }
+  //   },
+  //   visibleInitially: false,
+  // },
+ ];
 
-// Helper to get a layer config by ID
+ // Helper to get a layer config by ID
 export const getOverlayLayerConfig = (id: string): OverlayLayerConfig | undefined => {
   return overlayLayers.find(layer => layer.id === id);
 };

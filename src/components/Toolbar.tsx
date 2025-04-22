@@ -19,6 +19,8 @@ const PlaceholderIcon = () => <svg className="w-6 h-6" fill="none" stroke="curre
 const GlobeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h8a2 2 0 002-2v-1a2 2 0 012-2h1.945M12 4.5v6.989l-2.256 1.008M12 4.5a9 9 0 11-7.929 11.515M12 4.5v6.989l2.256 1.008m4.83 4.491l.949 1.5M4.22 20.515l.949-1.5M12 21.75c-2.676 0-5.216-.584-7.499-1.632" /></svg>;
 // Layers Icon
 const LayersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>;
+// Simple Fire Icon Placeholder
+const FireIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5-2.98-.565A7.958 7.958 0 006 14c0 3 4 6 6 6s6-3 6-6c0-2-1.8-4.27-3-5.5a.5.5 0 00-.657.026 8.5 8.5 0 01-5.33 2.131c-1.338 0-2.58-.5-3.536-1.464" /></svg>;
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
   activeStyleId, 
@@ -36,21 +38,33 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {buttons.map((_, index) => {
           const isBasemapButton = index === 0;
           const isLayersButton = index === 1;
+          const isFireButton = index === 2; // Use button index 2 for Fire
           // Assign Icons based on index
           let Icon = PlaceholderIcon;
           let label = `Tool ${index + 1}`;
+          let isActive = false;
+
           if (isBasemapButton) {
               Icon = GlobeIcon;
               label = "Basemaps";
+              isActive = isSwitcherVisible;
           } else if (isLayersButton) {
               Icon = LayersIcon;
               label = "Layers";
+              isActive = isLayerSwitcherVisible;
+          } else if (isFireButton) {
+              Icon = FireIcon;
+              label = "US Fire Events";
+              isActive = activeLayerIds.includes('us-fire-events-wfigs');
           }
+
+          // Conditional styling for active state
+          const activeClasses = isActive ? 'bg-blue-100 dark:bg-blue-900' : '';
 
           return (
             <button
               key={index}
-              className={`p-2 rounded ${isSwitcherVisible && isBasemapButton ? 'bg-blue-100 dark:bg-blue-900' : ''} hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`p-2 rounded ${activeClasses} hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               aria-label={label}
               title={label}
               onClick={() => {
@@ -60,7 +74,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 } else if (isLayersButton) {
                   setIsLayerSwitcherVisible(!isLayerSwitcherVisible);
                   setIsSwitcherVisible(false);
-                  console.log("Layers button clicked, visibility:", !isLayerSwitcherVisible);
+                } else if (isFireButton) {
+                  // Toggle the specific fire layer
+                  onLayerToggle('us-fire-events-wfigs');
+                  // Close other switchers if open
+                  setIsSwitcherVisible(false);
+                  setIsLayerSwitcherVisible(false);
                 }
                 // Add onClick handlers for other buttons later
               }}
