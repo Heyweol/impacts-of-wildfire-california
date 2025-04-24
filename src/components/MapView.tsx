@@ -1,15 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
-import maplibregl, { Map, StyleSpecification, MapMouseEvent, MapGeoJSONFeature, Popup } from 'maplibre-gl'; // Import Popup
+import maplibregl, { Map, MapMouseEvent, MapGeoJSONFeature, Popup, MapSourceDataEvent, SourceSpecification, LayerSpecification } from 'maplibre-gl'; 
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { mapStyles, defaultMapStyle } from '@/config/mapStyles';
-import { overlayLayers, getOverlayLayerConfig } from '@/config/overlayLayers'; // Import overlay config
+import { overlayLayers } from '@/config/overlayLayers'; 
 
 // Define props
 interface MapViewProps {
   activeStyleId: string;
   activeLayerIds: string[];
-  minIncidentSize: number; // Add filter prop
-  onDataRangeLoad: (min: number, max: number) => void; // Callback for data range
+  minIncidentSize: number; 
+  onDataRangeLoad: (min: number, max: number) => void; 
 }
 
 const MapView: React.FC<MapViewProps> = ({ 
@@ -20,7 +20,7 @@ const MapView: React.FC<MapViewProps> = ({
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<Map | null>(null);
-  const [lng] = useState(-98.5795); // Approx center of US
+  const [lng] = useState(-98.5795); 
   const [lat] = useState(39.8283);
   const [zoom] = useState(4.5);
 
@@ -28,29 +28,25 @@ const MapView: React.FC<MapViewProps> = ({
   const initialStyle = mapStyles.find(style => style.id === activeStyleId)?.style || defaultMapStyle.style;
 
   useEffect(() => {
-    if (map.current || !mapContainer.current) return; // Initialize map only once and if container exists
+    if (map.current || !mapContainer.current) return; 
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: initialStyle, // Use initial style
+      style: initialStyle, 
       center: [lng, lat],
       zoom: zoom,
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    // Clean up on unmount
     return () => {
       map.current?.remove();
       map.current = null;
     };
-  // Disable eslint warning because initialStyle should only be used on first mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lng, lat, zoom]); // Only re-run if center/zoom change (won't here)
+  }, [lng, lat, zoom, initialStyle]); 
 
-  // Effect to update style when activeStyleId changes
   useEffect(() => {
-    if (!map.current) return; // Make sure map is initialized
+    if (!map.current) return; 
 
     const newStyle = mapStyles.find(style => style.id === activeStyleId)?.style;
     if (newStyle) {
@@ -58,51 +54,49 @@ const MapView: React.FC<MapViewProps> = ({
         map.current.setStyle(newStyle);
       } catch (error) {
         console.error("Error setting map style:", error);
-        // Potentially show an error message to the user
       }
     }
-  }, [activeStyleId]); // Re-run only when activeStyleId changes
+  }, [activeStyleId]); 
 
-  // Effect to add/remove overlay layers when activeLayerIds changes
   useEffect(() => {
-    if (!map.current) return; // Make sure map is initialized
+    if (!map.current) return; 
     const currentMap = map.current;
 
-    // Ensure the base style is loaded before trying to add layers
     if (!currentMap.isStyleLoaded()) {
         console.log('Base style not loaded yet, delaying layer update.');
-        // Wait for the style to load
         currentMap.once('styledata', () => {
             console.log('Base style loaded, applying layer updates.');
-            updateLayers(currentMap, activeLayerIds, minIncidentSize);
+            updateLayers(currentMap, activeLayerIds);
         });
         return;
     }
 
-    // If style is already loaded, update layers directly
-    updateLayers(currentMap, activeLayerIds, minIncidentSize);
+    updateLayers(currentMap, activeLayerIds);
 
-  }, [activeLayerIds, minIncidentSize]); // Re-run only when activeLayerIds or minIncidentSize changes
+  }, [activeLayerIds]); 
 
-  // Effect to handle popups and cursor changes for interactive layers
   useEffect(() => {
-    if (!map.current) return; // Ensure map is initialized
+    if (!map.current) return; 
     const currentMap = map.current;
-    const fireLayerId = 'us-fire-events-wfigs-layer'; // ID of the layer to make interactive
+    const fireLayerId = 'us-fire-events-wfigs-layer'; 
 
-    // --- Click Listener for Popups ---
     const handleLayerClick = (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0];
         const properties = feature.properties;
-        const coordinates = (feature.geometry as any).coordinates.slice(); // Type assertion needed
+        const geometry = feature.geometry;
 
-        // Ensure coordinates are numbers and popup doesn't appear over itself
+        if (geometry?.type !== 'Point') {
+            console.warn("Clicked feature geometry is not a Point:", geometry);
+            return; 
+        }
+
+        const coordinates = geometry.coordinates.slice() as [number, number]; 
+
         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
           coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
 
-        // Build popup HTML content
         let popupContent = `<strong>${properties?.IncidentName || 'Unnamed Incident'}</strong><br>`;
         if (properties?.FireDiscoveryDateTime) {
           popupContent += `Discovered: ${new Date(properties.FireDiscoveryDateTime).toLocaleString()}<br>`;
@@ -124,7 +118,6 @@ const MapView: React.FC<MapViewProps> = ({
       }
     };
 
-    // --- Mouse Enter/Leave for Cursor Change ---
     const handleMouseEnter = () => {
         if (currentMap) currentMap.getCanvas().style.cursor = 'pointer';
     };
@@ -133,62 +126,48 @@ const MapView: React.FC<MapViewProps> = ({
         if (currentMap) currentMap.getCanvas().style.cursor = '';
     };
 
-    // Attach listeners
     currentMap.on('click', fireLayerId, handleLayerClick);
     currentMap.on('mouseenter', fireLayerId, handleMouseEnter);
     currentMap.on('mouseleave', fireLayerId, handleMouseLeave);
 
-    // Cleanup function
     return () => {
       if (currentMap) {
         currentMap.off('click', fireLayerId, handleLayerClick);
         currentMap.off('mouseenter', fireLayerId, handleMouseEnter);
         currentMap.off('mouseleave', fireLayerId, handleMouseLeave);
-        // Reset cursor just in case
         try {
            currentMap.getCanvas().style.cursor = '';
-        } catch (e) {
-           // Ignore errors if map canvas is already gone
-        }
+        } catch { /* ignore errors if map canvas is already gone */ }
       }
     };
 
-  }, []); // Empty dependency array ensures this runs once when the map is ready
+  }, []); 
 
-  // Effect to apply filter when minIncidentSize changes
   useEffect(() => {
-    if (!map.current) return; // Ensure map is initialized
+    if (!map.current) return; 
     const currentMap = map.current;
-    const fireLayerId = 'us-fire-events-wfigs-layer';
+    const fireLayerId = 'us-fire-events-wfigs-layer'; 
 
-    // Check if the layer exists before trying to set filter
     if (currentMap.getLayer(fireLayerId)) {
-        // Apply the filter: ['>=', ['get', 'property_name'], value]
         currentMap.setFilter(fireLayerId, [
             ">=", 
-            ["coalesce", ["get", "IncidentSize"], 0], // If IncidentSize is null, use 0
+            ["coalesce", ["get", "IncidentSize"], 0], 
             minIncidentSize
         ]);
         console.log(`Applied filter: IncidentSize >= ${minIncidentSize}`);
     } else {
-        // Layer might not be added yet, filter will be applied when added if source has filter option?
-        // Alternatively, handle filter logic within the addLayer part in updateLayers
-        // For now, just log it.
         console.log(`Layer ${fireLayerId} not found when trying to apply filter.`);
     }
 
-  }, [minIncidentSize]); // Re-run only when minIncidentSize changes
+  }, [minIncidentSize]); 
 
-  // Effect to calculate and report data range when fire source loads
   useEffect(() => {
     if (!map.current) return;
     const currentMap = map.current;
-    const fireSourceId = 'us-fire-events-wfigs-source'; // Corrected source ID
+    const fireSourceId = 'us-fire-events-wfigs-source'; 
 
-    const handleDataLoad = (e: any) => {
-      // Check if the event is for our specific source and if it's fully loaded
+    const handleDataLoad = (e: MapSourceDataEvent) => {
       if (e.sourceId === fireSourceId && e.isSourceLoaded) {
-        // Query features (might be performance intensive on very large datasets)
         const features = currentMap.querySourceFeatures(fireSourceId);
         
         let minSize = Infinity;
@@ -197,7 +176,6 @@ const MapView: React.FC<MapViewProps> = ({
 
         features.forEach(feature => {
           const size = feature.properties?.IncidentSize;
-          // Only consider valid numbers
           if (typeof size === 'number' && !isNaN(size)) {
             hasFeatures = true;
             minSize = Math.min(minSize, size);
@@ -205,40 +183,31 @@ const MapView: React.FC<MapViewProps> = ({
           }
         });
 
-        // If we found features, report the range; otherwise report 0-0 or keep default?
-        // Reporting 0-0 seems reasonable if no valid data points exist.
         if (hasFeatures) {
             console.log(`Calculated IncidentSize range: ${minSize} - ${maxSize}`);
             onDataRangeLoad(minSize, maxSize);
         } else {
             console.log('No valid IncidentSize features found to calculate range.');
-            onDataRangeLoad(0, 0); // Report 0-0 if no valid data
+            onDataRangeLoad(0, 0); 
         }
 
-        // Remove the listener after the first successful range calculation
-        // to prevent resetting the slider on subsequent 'data' events.
         currentMap.off('data', handleDataLoad);
       }
     };
 
-    // Add the listener
     currentMap.on('data', handleDataLoad);
 
-    // Cleanup
     return () => {
       if (currentMap) {
         try {
             currentMap.off('data', handleDataLoad);
-        } catch (e) { /* ignore errors if map/listener gone */ }
+        } catch { /* ignore errors if map/listener gone */ }
       }
     };
-  // Dependency on onDataRangeLoad ensures stable callback reference is used
   }, [onDataRangeLoad]); 
 
-  // Helper function to manage layer updates
-  const updateLayers = (currentMap: Map, currentActiveLayerIds: string[], currentMinSize: number) => {
+  const updateLayers = (currentMap: Map, currentActiveLayerIds: string[]) => {
     overlayLayers.forEach(layerConfig => {
-      // Use the defined sourceId and layerId
       const layerId = layerConfig.layer.id;
       const sourceId = layerConfig.sourceId; 
 
@@ -246,36 +215,29 @@ const MapView: React.FC<MapViewProps> = ({
       const layerExists = currentMap.getLayer(layerId);
       const sourceExists = currentMap.getSource(sourceId);
 
-      // Skip placeholders entirely for now
       if (layerConfig.type === 'placeholder') return;
 
       if (layerIsActive && !layerExists) {
-        // Add Source if it doesn't exist AND a definition is provided
         if (!sourceExists && layerConfig.sourceDefinition) {
           try {
             console.log(`Adding source: ${sourceId} with definition type: ${typeof layerConfig.sourceDefinition}`);
-            let sourceSpecToAdd: any;
+            let sourceSpecToAdd: SourceSpecification;
 
             if (typeof layerConfig.sourceDefinition === 'string') {
-              // Handle simple URL source - ensure type is compatible
               if (layerConfig.type === 'geojson' || layerConfig.type === 'vector' || layerConfig.type === 'raster') {
-                // These types accept a URL directly via the 'data' or 'tiles' property
                 if (layerConfig.type === 'raster') {
-                    sourceSpecToAdd = { type: 'raster', tiles: [layerConfig.sourceDefinition], tileSize: 256 }; // Basic raster tile setup
+                    sourceSpecToAdd = { type: 'raster', tiles: [layerConfig.sourceDefinition], tileSize: 256 }; 
                 } else {
-                    // Assuming GeoJSON or Vector Tiles URL
                     sourceSpecToAdd = { type: layerConfig.type, data: layerConfig.sourceDefinition }; 
                 }
               } else {
                 console.error(`Source definition for ${sourceId} is a string, but type is ${layerConfig.type} which requires an object definition.`);
-                return; // Cannot add source
+                return; 
               }
             } else {
-              // Handle full SourceSpecification object
               sourceSpecToAdd = layerConfig.sourceDefinition;
             }
 
-            // Type assertion needed because addSource type definition is broad
             currentMap.addSource(sourceId, sourceSpecToAdd); 
 
           } catch (error) {
@@ -284,33 +246,29 @@ const MapView: React.FC<MapViewProps> = ({
           }
         }
         
-        // Add Layer (check source existence again, could have failed above)
         if (currentMap.getSource(sourceId)) {
             try {
                 console.log(`Adding layer: ${layerId} for source: ${sourceId}`);
-                // Add safety check: layer spec must have a source field that matches our sourceId
-                if ('source' in layerConfig.layer && layerConfig.layer.source === sourceId) {
-                    currentMap.addLayer(layerConfig.layer);
-                } else if (!('source' in layerConfig.layer)) {
-                    // Handle layers without a source (like background - though unlikely for overlays)
-                    console.warn(`Layer ${layerId} does not have a source property.`);
-                    // currentMap.addLayer(layerConfig.layer);
+                if ('source' in layerConfig.layer) {
+                    if (layerConfig.layer.source === sourceId) {
+                        currentMap.addLayer(layerConfig.layer as LayerSpecification);
+                    } else {
+                        console.error(`Layer ${layerId} source property ('${layerConfig.layer.source}') does not match configured sourceId ('${sourceId}'). Cannot add.`);
+                    }
                 } else {
-                    console.error(`Layer ${layerId} source property ('${(layerConfig.layer as any).source}') does not match configured sourceId ('${sourceId}')`);
+                    console.warn(`Layer ${layerId} does not have a 'source' property. Cannot add layer that requires a source.`);
                 }
             } catch (error) {
               console.error(`Error adding layer ${layerId}:`, error);
             }
         } else {
-            // Source doesn't exist (either wasn't defined or failed to add)
-            // We might need to wait for source to load if it was added just now
             console.warn(`Source ${sourceId} not available when attempting to add layer ${layerId}. Waiting for 'sourcedata'...`);
             currentMap.once('sourcedata', (e) => {
                 if (e.sourceId === sourceId && e.isSourceLoaded && currentMap.getSource(sourceId)) {
                     console.log(`Source ${sourceId} loaded after delay, adding layer ${layerId}`);
                     if (!currentMap.getLayer(layerId) && 'source' in layerConfig.layer && layerConfig.layer.source === sourceId) {
                          try {
-                            currentMap.addLayer(layerConfig.layer);
+                            currentMap.addLayer(layerConfig.layer as LayerSpecification);
                          } catch (error) {
                             console.error(`Error adding layer ${layerId} after sourcedata event:`, error);
                          }
@@ -319,8 +277,6 @@ const MapView: React.FC<MapViewProps> = ({
             });
         }
       } else if (!layerIsActive && layerExists) {
-        // --- Remove Layer and Source --- 
-        // Remove Layer first
         try {
           console.log(`Removing layer: ${layerId}`);
           currentMap.removeLayer(layerId);
@@ -328,13 +284,12 @@ const MapView: React.FC<MapViewProps> = ({
           console.error(`Error removing layer ${layerId}:`, error);
         }
 
-        // Remove Source if it exists and is no longer needed by other active layers
-        if (sourceExists) {
+        if (currentMap.getSource(sourceId)) {
             const sourceUsedByOtherLayers = overlayLayers.some(otherLayer => 
-                otherLayer.id !== layerConfig.id && // Not the current layer
-                otherLayer.type !== 'placeholder' && // Not a placeholder
-                currentActiveLayerIds.includes(otherLayer.id) && // Is active
-                otherLayer.sourceId === sourceId // Uses the same source ID
+                otherLayer.id !== layerConfig.id && 
+                otherLayer.type !== 'placeholder' && 
+                currentActiveLayerIds.includes(otherLayer.id) && 
+                otherLayer.sourceId === sourceId 
             );
 
             if (!sourceUsedByOtherLayers) {

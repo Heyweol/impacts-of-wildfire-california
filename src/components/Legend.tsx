@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { OverlayLayerConfig } from '@/config/overlayLayers';
 
 interface LegendProps {
@@ -25,11 +26,18 @@ const Legend: React.FC<LegendProps> = ({ layers, activeLayerIds }) => {
           <div key={layer.id}>
             {/* Adjusted layer name size, weight, margin, text color */}
             <p className="text-sm font-medium mb-1 text-gray-800">{layer.name}</p>
-            <img
-              src={layer.legendUrl}
-              alt={`${layer.name} Legend`}
-              className="max-w-full h-auto border border-gray-200 rounded-sm" // Added subtle border
-            />
+            {layer.legendUrl && (
+              <Image
+                src={layer.legendUrl}
+                alt={`${layer.name} Legend`}
+                width={200}
+                height={100}
+                className="max-w-full h-auto border border-gray-200 rounded-sm" // Added subtle border
+              />
+            )}
+            {!layer.legendUrl && (
+              <p className="text-xs text-gray-500">No legend available.</p>
+            )}
           </div>
         ))}
       </div>

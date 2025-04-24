@@ -125,6 +125,25 @@
     *   Consider performance implications of loading potentially many features (e.g., use clustering or filtering).
     *   Revisit 'Past Incidents' later if needed, likely requiring a server-side fetch approach.
 
+## Stage 4: Bug Fixing and GitHub Pages Deployment Setup
+
+- **Timestamp:** 2025-04-23
+- **Activities:**
+  - **ESLint & TypeScript Bug Fixes:** Resolved several issues in `BasemapSwitcher.tsx`, `Legend.tsx`, and `MapView.tsx` including unused variables/imports, incorrect type usage (replaced `any` with specific types like `MapSourceDataEvent`, `SourceSpecification`, `LayerSpecification`), added conditional rendering for potentially undefined props (`legendUrl`), fixed missing `useEffect` dependencies, and installed `@types/geojson`.
+  - **GitHub Pages Deployment Configuration:**
+    - Installed `gh-pages` development dependency (`pnpm add -D gh-pages`).
+    - Created `next.config.mjs` and configured it for static export:
+      - Set `output: 'export'`.
+      - Set `basePath: '/impacts-of-wildfire-california'`.
+      - Set `assetPrefix: '/impacts-of-wildfire-california/'`.
+      - Set `images: { unoptimized: true }` (required for static export).
+    - Added a `deploy` script to `package.json`: `"deploy": "next build && gh-pages -d out"`.
+    - Updated `docs/files.md` and `docs/development_stage.md`.
+- **Next Steps:**
+  - Run the deployment script.
+  - Configure GitHub repository settings to serve from the `gh-pages` branch.
+  - Add more overlay layers and functionality.
+
 ## Next Steps
 
 *   Implement header/navigation.

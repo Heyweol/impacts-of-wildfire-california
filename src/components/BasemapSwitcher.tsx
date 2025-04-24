@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { mapStyles, BasemapStyle } from '@/config/mapStyles';
+import { mapStyles } from '@/config/mapStyles';
 
 interface BasemapSwitcherProps {
   activeStyleId: string;
