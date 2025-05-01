@@ -159,6 +159,29 @@
 - **Next Steps:**
   - Implement header/navigation
   - Add sidebar for controls/layers
+
+## Stage 6: Re-integration of Weather Radar Data
+
+- **Timestamp:** 2025-05-01
+- **Features Added:**
+  - **Re-added NWS Radar Layers:**
+    - Added back all NWS Radar WMS layers to `src/config/overlayLayers.ts`:
+      - NWS Radar (Base Reflectivity) - Layer: `conus_bref_qcd`
+      - NWS Radar (Composite Reflectivity) - Layer: `conus_cref_qcd`
+      - NWS Radar (Echo Tops) - Layer: `conus_neet_v18`
+      - NWS Radar (Precipitation Type) - Layer: `conus_pcpn_typ`
+    - Each layer includes proper WMS configuration with GetMap and GetLegendGraphic endpoints
+    - Maintained the same configuration structure from Stage 3
+  - **Fixed Legend Image Display:**
+    - Updated `next.config.mjs` to allow images from the NOAA GeoServer domain
+    - Added `opengeo.ncep.noaa.gov` to the `remotePatterns` in the Next.js image configuration
+    - This allows the WMS legend images to display properly in the Legend component
+  - **Documentation Updates:**
+    - Updated `docs/files.md` to reflect the re-addition of weather radar layers
+    - Updated `docs/development_stage.md` with this new stage information
+- **Next Steps:**
+  - Consider adding functionality to ensure only one radar layer is active at a time
+  - Explore additional weather data sources for enhanced spatio-temporal analysis
   - Integrate California-specific wildfire data sources
   - Implement spatio-temporal analysis features
   - Refine map styling and base layers

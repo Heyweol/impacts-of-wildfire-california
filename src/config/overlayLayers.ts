@@ -220,6 +220,102 @@ export const overlayLayers: OverlayLayerConfig[] = [
       requiresYearSelection: true
     }
   },
+  {
+    id: 'nws-radar-base-reflectivity',
+    name: 'NWS Radar (Base Reflectivity)',
+    type: 'raster',
+    sourceId: 'nws-radar-base-reflectivity-source',
+    sourceDefinition: {
+      type: 'raster',
+      tiles: [
+        'https://opengeo.ncep.noaa.gov/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=conus_bref_qcd&STYLES=&WIDTH=256&HEIGHT=256&CRS=EPSG:3857&BBOX={bbox-epsg-3857}'
+      ],
+      tileSize: 256
+    },
+    layer: {
+      id: 'nws-radar-base-reflectivity-layer',
+      type: 'raster',
+      source: 'nws-radar-base-reflectivity-source',
+      paint: {
+        'raster-opacity': 0.8
+      }
+    },
+    legendUrl: 'https://opengeo.ncep.noaa.gov/geoserver/wms?REQUEST=GetLegendGraphic&FORMAT=image/png&WIDTH=12&HEIGHT=12&LAYER=conus_bref_qcd',
+    visibleInitially: false,
+    initiallyVisible: false
+  },
+  {
+    id: 'nws-radar-composite-reflectivity',
+    name: 'NWS Radar (Composite Reflectivity)',
+    type: 'raster',
+    sourceId: 'nws-radar-composite-reflectivity-source',
+    sourceDefinition: {
+      type: 'raster',
+      tiles: [
+        'https://opengeo.ncep.noaa.gov/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=conus_cref_qcd&STYLES=&WIDTH=256&HEIGHT=256&CRS=EPSG:3857&BBOX={bbox-epsg-3857}'
+      ],
+      tileSize: 256
+    },
+    layer: {
+      id: 'nws-radar-composite-reflectivity-layer',
+      type: 'raster',
+      source: 'nws-radar-composite-reflectivity-source',
+      paint: {
+        'raster-opacity': 0.8
+      }
+    },
+    legendUrl: 'https://opengeo.ncep.noaa.gov/geoserver/wms?REQUEST=GetLegendGraphic&FORMAT=image/png&WIDTH=12&HEIGHT=12&LAYER=conus_cref_qcd',
+    visibleInitially: false,
+    initiallyVisible: false
+  },
+  {
+    id: 'nws-radar-echo-tops',
+    name: 'NWS Radar (Echo Tops)',
+    type: 'raster',
+    sourceId: 'nws-radar-echo-tops-source',
+    sourceDefinition: {
+      type: 'raster',
+      tiles: [
+        'https://opengeo.ncep.noaa.gov/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=conus_neet_v18&STYLES=&WIDTH=256&HEIGHT=256&CRS=EPSG:3857&BBOX={bbox-epsg-3857}'
+      ],
+      tileSize: 256
+    },
+    layer: {
+      id: 'nws-radar-echo-tops-layer',
+      type: 'raster',
+      source: 'nws-radar-echo-tops-source',
+      paint: {
+        'raster-opacity': 0.8
+      }
+    },
+    legendUrl: 'https://opengeo.ncep.noaa.gov/geoserver/wms?REQUEST=GetLegendGraphic&FORMAT=image/png&WIDTH=12&HEIGHT=12&LAYER=conus_neet_v18',
+    visibleInitially: false,
+    initiallyVisible: false
+  },
+  {
+    id: 'nws-radar-precip-type',
+    name: 'NWS Radar (Precipitation Type)',
+    type: 'raster',
+    sourceId: 'nws-radar-precip-type-source',
+    sourceDefinition: {
+      type: 'raster',
+      tiles: [
+        'https://opengeo.ncep.noaa.gov/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=conus_pcpn_typ&STYLES=&WIDTH=256&HEIGHT=256&CRS=EPSG:3857&BBOX={bbox-epsg-3857}'
+      ],
+      tileSize: 256
+    },
+    layer: {
+      id: 'nws-radar-precip-type-layer',
+      type: 'raster',
+      source: 'nws-radar-precip-type-source',
+      paint: {
+        'raster-opacity': 0.8
+      }
+    },
+    legendUrl: 'https://opengeo.ncep.noaa.gov/geoserver/wms?REQUEST=GetLegendGraphic&FORMAT=image/png&WIDTH=12&HEIGHT=12&LAYER=conus_pcpn_typ',
+    visibleInitially: false,
+    initiallyVisible: false
+  }
  ];
 
  // Helper to get a layer config by ID

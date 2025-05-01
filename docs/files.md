@@ -74,7 +74,11 @@ fire_web/
         *   US State Outlines (GeoJSON example)
         *   California County Boundaries (GeoJSON from local file, always visible)
         *   California Fire Perimeters (GeoJSON from ArcGIS REST API, 2018-2023)
-    *   Note: Weather radar layers, temperature forecasts, and fire event layers have been removed to focus specifically on California wildfire data.
+    *   Includes NWS Weather Radar layers from the NOAA GeoServer WMS service:
+        *   NWS Radar (Base Reflectivity) - Layer: `conus_bref_qcd`
+        *   NWS Radar (Composite Reflectivity) - Layer: `conus_cref_qcd`
+        *   NWS Radar (Echo Tops) - Layer: `conus_neet_v18`
+        *   NWS Radar (Precipitation Type) - Layer: `conus_pcpn_typ`
     *   Layer options include MapLibre paint properties for styling (e.g., `'fill-color'` with interpolation for fire years). Popups are handled outside this config via map event listeners.
     *   Includes enhanced legend configuration for the fire perimeters layer with gradient color swatches.
 

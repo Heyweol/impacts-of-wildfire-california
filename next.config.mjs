@@ -1,6 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Optional: Add other Next.js configurations here if needed
+  // Configure allowed image domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'opengeo.ncep.noaa.gov',
+        port: '',
+        pathname: '/geoserver/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
