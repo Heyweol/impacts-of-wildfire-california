@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import maplibregl from 'maplibre-gl';
 import { Feature, FeatureCollection, Geometry } from 'geojson';
 
 // Define the fire data properties based on the ArcGIS API response
@@ -72,6 +73,9 @@ interface FireDataContextType {
   // Actions
   refreshData: () => Promise<void>;
   resetFilters: () => void;
+  
+  // Layer management
+  ensureFireLayerOnTop: (mapInstance?: maplibregl.Map) => void;
 }
 
 // Create the context with default values
@@ -290,6 +294,47 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
     
   }, [fireData]);
   
+  // Function to ensure fire layer is always on top of other choropleth layers
+  const ensureFireLayerOnTop = useCallback((mapInstance?: maplibregl.Map) => {
+    const processMap = (map: maplibregl.Map, index: number) => {
+      if (!map) {
+        return;
+      }
+      
+      const moveFireLayers = () => {
+        const fireLayerIds = ['california-fire-perimeters-layer', 'us-fire-events-wfigs-layer'];
+        
+        fireLayerIds.forEach(id => {
+          if (map.getLayer(id)) {
+            try {
+              map.moveLayer(id); // Move to top
+            } catch (e) {
+              console.error(`[FireCtx] Map ${index}: Error moving layer ${id}:`, e);
+            }
+          } else {
+          }
+        });
+      };
+
+      if (map.isStyleLoaded() && !map.isMoving() && !map.isZooming() && !map.isRotating()) {
+         moveFireLayers();
+      } else {
+         map.once('idle', moveFireLayers);
+      }
+    };
+
+    if (mapInstance) {
+      processMap(mapInstance, 0); // Process the provided map instance
+    } else {
+      console.warn('[FireCtx] ensureFireLayerOnTop called without map instance, using querySelector fallback.');
+      const maps = document.querySelectorAll('.maplibregl-map');
+      maps.forEach((el, index) => {
+        const instanceFromQuery = (el as unknown as { _map?: maplibregl.Map })._map as maplibregl.Map;
+        processMap(instanceFromQuery, index);
+      });
+    }
+  }, []);
+  
   // Effect to apply filters when filters or raw data changes
   useEffect(() => {
     if (!fireData || !fireData.features) {
@@ -343,7 +388,10 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
     setFilteredData(filtered);
     setFiltersApplied(true);
     
-  }, [fireData, filters]);
+    // Ensure fire layer is on top after data changes
+    setTimeout(ensureFireLayerOnTop, 100); // Small delay to ensure the map has updated
+    
+  }, [fireData, filters, ensureFireLayerOnTop]);
   
   // Calculate filtered statistics
   const filteredStats = React.useMemo(() => {
@@ -423,6 +471,7 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
     maxPossibleAcres: stats.maxPossibleAcres,
     refreshData,
     resetFilters,
+    ensureFireLayerOnTop,
   };
   
   return (

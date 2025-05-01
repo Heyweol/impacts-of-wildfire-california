@@ -23,6 +23,10 @@ export interface OverlayLayerConfig {
   initiallyVisible?: boolean;        // Whether the layer is visible by default
   legend?: LegendConfig;             // Optional legend configuration
   legendUrl?: string;                // Optional URL for a legend image (e.g., WMS GetLegendGraphic)
+  metadata?: {                       // Optional metadata for additional layer properties
+    requiresYearSelection?: boolean; // Whether this layer requires year selection
+    [key: string]: unknown;          // Allow for other metadata properties (avoid explicit any)
+  };
   // Add other potential properties like description, attribution, minZoom, maxZoom etc.
 }
 
@@ -168,6 +172,53 @@ export const overlayLayers: OverlayLayerConfig[] = [
     },
     visibleInitially: false,
     initiallyVisible: false,
+  },
+  {
+    id: 'california-temperature-anomaly',
+    name: 'Temperature Anomaly',
+    type: 'geojson',
+    sourceId: 'california-county-boundaries-source', // Uses the same source as county boundaries
+    layer: {
+      id: 'california-temperature-anomaly-layer',
+      type: 'fill',
+      source: 'california-county-boundaries-source',
+      paint: {
+        'fill-color': [
+          'step',
+          ['coalesce', ['feature-state', 'temperatureAnomaly'], -999],
+          '#cccccc',   // -999 (no data)
+          -1, '#4575b4',  // Cooling
+          0, '#91bfdb',   // Slight warming
+          1, '#e0f3f8',   // Moderate warming
+          2, '#fee090',   // Significant warming
+          3, '#fc8d59',   // High warming
+          4, '#d73027'    // Extreme warming
+        ],
+        'fill-opacity': 0.7,
+        'fill-outline-color': 'transparent' // Keep outline transparent
+      },
+      layout: {
+        visibility: 'visible' // Keep it visible by default, controlled by activeLayerIds
+      }
+    },
+    legend: {
+      type: 'gradient',
+      title: 'Temperature Anomaly (°F)',
+      items: [
+        { label: '<0°F', color: '#4575b4' },
+        { label: '0-1°F', color: '#91bfdb' },
+        { label: '1-2°F', color: '#e0f3f8' },
+        { label: '2-3°F', color: '#fee090' },
+        { label: '3-4°F', color: '#fc8d59' },
+        { label: '>4°F', color: '#d73027' },
+        { label: 'No data', color: '#cccccc' }
+      ]
+    },
+    visibleInitially: false,
+    initiallyVisible: false,
+    metadata: {
+      requiresYearSelection: true
+    }
   },
  ];
 

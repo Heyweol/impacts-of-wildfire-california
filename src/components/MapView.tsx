@@ -5,6 +5,7 @@ import { mapStyles, defaultMapStyle } from '@/config/mapStyles';
 import { overlayLayers } from '@/config/overlayLayers'; 
 import { useFireData } from '@/contexts/FireDataContext';
 import { fetchAsthmaData } from '@/utils/asthmaData';
+import { fetchTemperatureData } from '@/utils/temperatureData';
 import Legend from './Legend';
 import LoadingIndicator from './LoadingIndicator';
 
@@ -13,7 +14,8 @@ interface MapViewProps {
   activeStyleId: string;
   activeLayerIds: string[];
   minIncidentSize: number; 
-  onDataRangeLoad: (min: number, max: number) => void; 
+  onDataRangeLoad: (min: number, max: number) => void;
+  selectedTemperatureYear?: number | null; // Optional prop for selected temperature year
 }
 
 const applyAsthmaDataToMap = (currentMap: Map, data: Record<string, number>) => {
@@ -52,11 +54,97 @@ const applyAsthmaDataToMap = (currentMap: Map, data: Record<string, number>) => 
   // then remove state, but let's keep it simple for now.
 };
 
+/**
+ * Apply temperature anomaly data to the map
+ * @param currentMap The MapLibre map instance
+ * @param data Record of county names to temperature anomaly values
+ */
+const applyTemperatureDataToMap = (currentMap: Map, data: Record<string, number>) => {
+  // Verify map and data
+  if (!currentMap || !data || Object.keys(data).length === 0) return;
+  
+  // Source and layer IDs
+  const sourceId = 'california-county-boundaries-source';
+  const layerId = 'california-temperature-anomaly-layer';
+  
+  // Verify source exists
+  if (!currentMap.getSource(sourceId)) return;
+  
+  // Make layer visible if it exists
+  if (currentMap.getLayer(layerId)) {
+    currentMap.setLayoutProperty(layerId, 'visibility', 'visible');
+  }
+  
+  // Clear existing feature states for counties that will be updated
+  // We can't use removeFeatureState without feature IDs, so we'll set each to null
+  // This is more targeted than the previous approach
+  try {
+    // Get all features from the source that are visible
+    const features = currentMap.querySourceFeatures(sourceId);
+    const processedIds = new Set<string>();
+    
+    // For each feature, clear its temperature anomaly state
+    features.forEach(feature => {
+      if (feature.properties && feature.properties.COUNTY_NAME) {
+        const id = feature.properties.COUNTY_NAME;
+        if (!processedIds.has(id)) {
+          // Set to null instead of removing
+          currentMap.setFeatureState(
+            { source: sourceId, id: id },
+            { temperatureAnomaly: null }
+          );
+          processedIds.add(id);
+        }
+      }
+    });
+    
+    console.log(`[Temperature] Cleared states for ${processedIds.size} counties`);
+  } catch (e) {
+    console.warn('[Temperature] Error clearing feature states:', e);
+    // Continue with setting new states
+  }
+  
+  // Track county names we've processed to avoid duplicates
+  const processedCounties = new Set<string>();
+  
+  // Build a mapping of data to feature IDs
+  Object.entries(data).forEach(([countyName, anomaly]) => {
+    // Skip if we've already processed this county
+    if (processedCounties.has(countyName)) return;
+    
+    try {
+      // Set the feature state directly - MapLibre will handle missing features
+      currentMap.setFeatureState(
+        { source: sourceId, id: countyName },
+        { temperatureAnomaly: anomaly }
+      );
+      
+      // Also try with/without 'County' suffix
+      const altCountyName = countyName.includes(' County') 
+        ? countyName.replace(' County', '') 
+        : `${countyName} County`;
+      
+      currentMap.setFeatureState(
+        { source: sourceId, id: altCountyName },
+        { temperatureAnomaly: anomaly }
+      );
+      
+      processedCounties.add(countyName);
+    } catch {
+      // Silent fail for individual counties
+    }
+  });
+  
+  // Force the map to update with a simple repaint
+  currentMap.triggerRepaint();
+};
+
 const MapView: React.FC<MapViewProps> = ({ 
   activeStyleId, 
   activeLayerIds, 
   minIncidentSize, 
-  onDataRangeLoad 
+  onDataRangeLoad,
+  selectedTemperatureYear
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<Map | null>(null);
@@ -69,11 +157,124 @@ const MapView: React.FC<MapViewProps> = ({
   const [isFirePerimetersLoading, setIsFirePerimetersLoading] = useState(false);
   const [isAsthmaDataLoading, setIsAsthmaDataLoading] = useState(false);
   
-  // Get filtered fire data from context
-  const { filteredData, isLoading: isFireDataLoading } = useFireData();
+  // Get filtered fire data and layer management function from context
+  const { filteredData, isLoading: isFireDataLoading, ensureFireLayerOnTop } = useFireData();
   
   // Store the asthma data
   const [asthmaData, setAsthmaData] = useState<Record<string, number> | null>(null);
+  
+  // Store the temperature data
+  const [temperatureData, setTemperatureData] = useState<Record<string, number> | null>(null);
+  
+  // Store the year corresponding to currently loaded temperature data
+  const [temperatureDataYear, setTemperatureDataYear] = useState<number | null>(null);
+  
+  // Define updateLayers function with useCallback to avoid dependency issues
+  const updateLayers = useCallback((currentMap: Map, currentActiveLayerIds: string[]) => {
+    overlayLayers.forEach(layerConfig => {
+      const layerId = layerConfig.layer.id;
+      const sourceId = layerConfig.sourceId; 
+
+      const layerIsActive = currentActiveLayerIds.includes(layerConfig.id);
+      const layerExists = currentMap.getLayer(layerId);
+      const sourceExists = currentMap.getSource(sourceId);
+
+      if (layerConfig.type === 'placeholder') return;
+
+      if (layerIsActive && !layerExists) {
+        if (!sourceExists && layerConfig.sourceDefinition) {
+          try {
+            console.log(`Adding source: ${sourceId} with definition type: ${typeof layerConfig.sourceDefinition}`);
+            let sourceSpecToAdd: SourceSpecification;
+
+            if (typeof layerConfig.sourceDefinition === 'string') {
+              if (layerConfig.type === 'geojson' || layerConfig.type === 'vector' || layerConfig.type === 'raster') {
+                if (layerConfig.type === 'raster') {
+                    sourceSpecToAdd = { type: 'raster', tiles: [layerConfig.sourceDefinition], tileSize: 256 }; 
+                } else {
+                    sourceSpecToAdd = { type: layerConfig.type, data: layerConfig.sourceDefinition }; 
+                }
+              } else {
+                console.error(`Source definition for ${sourceId} is a string, but type is ${layerConfig.type} which requires an object definition.`);
+                return; 
+              }
+            } else {
+              sourceSpecToAdd = layerConfig.sourceDefinition;
+            }
+
+            currentMap.addSource(sourceId, sourceSpecToAdd); 
+
+          } catch (error) {
+            console.error(`Error adding source ${sourceId}:`, error);
+            return; // Don't try to add layer if source failed
+          }
+        }
+        
+        if (currentMap.getSource(sourceId)) {
+            try {
+                console.log(`Adding layer: ${layerId} for source: ${sourceId}`);
+                if ('source' in layerConfig.layer) {
+                    if (layerConfig.layer.source === sourceId) {
+                        currentMap.addLayer(layerConfig.layer as LayerSpecification);
+                    } else {
+                        console.error(`Layer ${layerId} source property ('${layerConfig.layer.source}') does not match configured sourceId ('${sourceId}'). Cannot add.`);
+                    }
+                } else {
+                    console.warn(`Layer ${layerId} does not have a 'source' property. Cannot add layer that requires a source.`);
+                }
+            } catch (error) {
+              console.error(`Error adding layer ${layerId}:`, error);
+            }
+        } else {
+            console.warn(`Source ${sourceId} not available when attempting to add layer ${layerId}. Waiting for 'sourcedata'...`);
+            currentMap.once('sourcedata', (e) => {
+                if (e.sourceId === sourceId && e.isSourceLoaded && currentMap.getSource(sourceId)) {
+                    console.log(`Source ${sourceId} loaded after delay, adding layer ${layerId}`);
+                    if (!currentMap.getLayer(layerId) && 'source' in layerConfig.layer && layerConfig.layer.source === sourceId) {
+                         try {
+                            currentMap.addLayer(layerConfig.layer as LayerSpecification);
+                         } catch (error) {
+                            console.error(`Error adding layer ${layerId} after sourcedata event:`, error);
+                         }
+                    }
+                }
+            });
+        }
+      } else if (!layerIsActive && layerExists) {
+        try {
+          console.log(`Removing layer: ${layerId}`);
+          currentMap.removeLayer(layerId);
+        } catch (error) {
+          console.error(`Error removing layer ${layerId}:`, error);
+        }
+
+        if (currentMap.getSource(sourceId)) {
+            const sourceUsedByOtherLayers = overlayLayers.some(otherLayer => 
+                otherLayer.id !== layerConfig.id && 
+                otherLayer.type !== 'placeholder' && 
+                currentActiveLayerIds.includes(otherLayer.id) && 
+                otherLayer.sourceId === sourceId 
+            );
+
+            if (!sourceUsedByOtherLayers) {
+                try {
+                    console.log(`Removing source: ${sourceId} as it's no longer used.`);
+                    currentMap.removeSource(sourceId);
+                } catch (error) {
+                    console.error(`Error removing source ${sourceId}:`, error);
+                }
+            } else {
+                console.log(`Source ${sourceId} still in use by other layers, not removing.`);
+            }
+        }
+      }
+    });
+    
+    // Ensure fire layers are on top after layer updates
+    if (currentMap) {
+      ensureFireLayerOnTop(currentMap);
+    }
+  }, [ensureFireLayerOnTop]);
 
   // Define loadAsthmaData function before it's used in useEffect
   const loadAsthmaData = useCallback(async () => {
@@ -90,7 +291,88 @@ const MapView: React.FC<MapViewProps> = ({
       setIsAsthmaDataLoading(false);
     }
   }, []); // Depends only on fetchAsthmaData import
+  
+  // Define loadTemperatureData function before it's used in useEffect
+  const loadTemperatureData = useCallback(async (year?: number) => {
+    console.log(`Attempting to load temperature data${year ? ` for year 20${year}` : ' (average)'}...`);
+    try {
+      const data = await fetchTemperatureData(year); // Fetch data using the utility function
+      console.log(`Temperature data loaded successfully for ${Object.keys(data).length} counties.`);
+      setTemperatureData(data);
+      setTemperatureDataYear(year ?? null); // Track which year this data belongs to
+      return data; // Return the data for immediate use if needed
+    } catch (error) {
+      console.error('Error loading temperature data:', error);
+      setTemperatureData(null); // Set to null on error
+      return null;
+    }
+  }, []); // Depends only on fetchTemperatureData import
 
+  // Single source of truth for temperature data updates
+  useEffect(() => {
+    // Exit early if map isn't ready or temperature layer isn't active
+    if (!map.current) return;
+    if (!activeLayerIds.includes('california-temperature-anomaly')) return;
+    
+    const currentMap = map.current;
+    const countySourceId = 'california-county-boundaries-source';
+    const temperatureLayerId = 'california-temperature-anomaly-layer';
+    
+    // Debug log - just simple info about what's being requested
+    const yearLabel = selectedTemperatureYear === null ? 'average' : `20${selectedTemperatureYear}`;
+    console.log(`[Temperature] Loading data for year: ${yearLabel}`);
+    
+    // Prevent multiple concurrent loads
+    let isCancelled = false;
+    
+    // Define a self-contained async function for loading and applying data
+    const updateTemperatureData = async () => {
+      // Start loading indicator
+      // Removed unused isTemperatureDataLoading state
+      
+      try {
+        // Ensure source exists
+        if (!currentMap.getSource(countySourceId)) {
+          console.error('[Temperature] County boundaries source not found');
+          return;
+        }
+        
+        // Make sure layer is visible
+        if (currentMap.getLayer(temperatureLayerId)) {
+          currentMap.setLayoutProperty(temperatureLayerId, 'visibility', 'visible');
+        }
+        
+        // Fetch data for the selected year
+        const year = selectedTemperatureYear; // Capture current value to prevent race conditions
+        const data = await fetchTemperatureData(year || undefined);
+        
+        // If this request was superseded by a newer one, exit
+        if (isCancelled) return;
+        
+        // Apply data if valid
+        if (data && Object.keys(data).length > 0) {
+          console.log(`[Temperature] Applying ${Object.keys(data).length} county data points for ${yearLabel}`);
+          applyTemperatureDataToMap(currentMap, data);
+        } else {
+          console.error('[Temperature] No data returned for year:', yearLabel);
+        }
+      } catch (error) {
+        if (!isCancelled) console.error('[Temperature] Error:', error);
+      } finally {
+        // Removed unused isTemperatureDataLoading state
+      }
+    };
+    
+    // Start the update process
+    updateTemperatureData();
+    
+    // Clean-up function to prevent race conditions
+    return () => {
+      isCancelled = true;
+    };
+    
+  }, [selectedTemperatureYear, activeLayerIds]); // Only depend on these two props
+  
   // Find the initial style object based on the activeStyleId prop
   const initialStyle = mapStyles.find(style => style.id === activeStyleId)?.style || defaultMapStyle.style;
 
@@ -142,7 +424,7 @@ const MapView: React.FC<MapViewProps> = ({
     } catch (error) {
       console.error("Error setting map style:", error);
     }
-  }, [activeStyleId, activeLayerIds]); // Added activeLayerIds as dependency
+  }, [activeStyleId, activeLayerIds, updateLayers]); // Added updateLayers as dependency
 
   useEffect(() => {
     if (!map.current) return; 
@@ -152,6 +434,8 @@ const MapView: React.FC<MapViewProps> = ({
     const wasFirePerimetersActive = activeLayerIds.includes('california-fire-perimeters');
     // Check if asthma layer is being activated
     const wasAsthmaLayerActive = activeLayerIds.includes('california-asthma-prevalence');
+    // Check if temperature layer is being activated
+    const wasTemperatureLayerActive = activeLayerIds.includes('california-temperature-anomaly');
     
     if (!currentMap.isStyleLoaded()) {
         console.log('Base style not loaded yet, delaying layer update.');
@@ -196,10 +480,44 @@ const MapView: React.FC<MapViewProps> = ({
         }
       }, 100); // Short delay to ensure updateLayers has completed
     }
+    
+    // If temperature layer is being activated, ensure source exists and load temperature data
+    if (wasTemperatureLayerActive) {
+      const countySourceId = 'california-county-boundaries-source';
+      const temperatureLayerId = 'california-temperature-anomaly-layer';
+      
+      // First ensure the source exists
+      if (!currentMap.getSource(countySourceId)) {
+        console.log(`Source '${countySourceId}' missing, will be added by updateLayers`);
+        // The source will be added by updateLayers below
+      }
+      
+      // After updateLayers runs, ensure the layer is visible
+      setTimeout(() => {
+        if (currentMap.getLayer(temperatureLayerId)) {
+          currentMap.setLayoutProperty(temperatureLayerId, 'visibility', 'visible');
+          console.log('Set temperature layer to visible');
+          
+          // Load data if not already loaded or if we need to refresh
+          if (!temperatureData || temperatureDataYear !== selectedTemperatureYear) {
+            loadTemperatureData(selectedTemperatureYear || undefined)
+              .then(data => {
+                if (data && currentMap.getSource(countySourceId)) {
+                  applyTemperatureDataToMap(currentMap, data);
+                }
+              });
+          } else if (currentMap.getSource(countySourceId)) {
+            // Re-apply data if already loaded and corresponds to current year
+            console.log('Re-applying temperature data to map');
+            applyTemperatureDataToMap(currentMap, temperatureData);
+          }
+        }
+      }, 100); // Short delay to ensure updateLayers has completed
+    }
 
     updateLayers(currentMap, activeLayerIds);
 
-  }, [activeLayerIds, asthmaData, loadAsthmaData]); // Added loadAsthmaData as dependency
+  }, [activeLayerIds, asthmaData, loadAsthmaData, temperatureData, temperatureDataYear, loadTemperatureData, selectedTemperatureYear, ensureFireLayerOnTop, updateLayers]); // Added updateLayers dependency
 
   useEffect(() => {
     if (!map.current) return; 
@@ -616,106 +934,7 @@ const MapView: React.FC<MapViewProps> = ({
     };
   }, [asthmaData]); 
   
-  const updateLayers = (currentMap: Map, currentActiveLayerIds: string[]) => {
-    overlayLayers.forEach(layerConfig => {
-      const layerId = layerConfig.layer.id;
-      const sourceId = layerConfig.sourceId; 
-
-      const layerIsActive = currentActiveLayerIds.includes(layerConfig.id);
-      const layerExists = currentMap.getLayer(layerId);
-      const sourceExists = currentMap.getSource(sourceId);
-
-      if (layerConfig.type === 'placeholder') return;
-
-      if (layerIsActive && !layerExists) {
-        if (!sourceExists && layerConfig.sourceDefinition) {
-          try {
-            console.log(`Adding source: ${sourceId} with definition type: ${typeof layerConfig.sourceDefinition}`);
-            let sourceSpecToAdd: SourceSpecification;
-
-            if (typeof layerConfig.sourceDefinition === 'string') {
-              if (layerConfig.type === 'geojson' || layerConfig.type === 'vector' || layerConfig.type === 'raster') {
-                if (layerConfig.type === 'raster') {
-                    sourceSpecToAdd = { type: 'raster', tiles: [layerConfig.sourceDefinition], tileSize: 256 }; 
-                } else {
-                    sourceSpecToAdd = { type: layerConfig.type, data: layerConfig.sourceDefinition }; 
-                }
-              } else {
-                console.error(`Source definition for ${sourceId} is a string, but type is ${layerConfig.type} which requires an object definition.`);
-                return; 
-              }
-            } else {
-              sourceSpecToAdd = layerConfig.sourceDefinition;
-            }
-
-            currentMap.addSource(sourceId, sourceSpecToAdd); 
-
-          } catch (error) {
-            console.error(`Error adding source ${sourceId}:`, error);
-            return; // Don't try to add layer if source failed
-          }
-        }
-        
-        if (currentMap.getSource(sourceId)) {
-            try {
-                console.log(`Adding layer: ${layerId} for source: ${sourceId}`);
-                if ('source' in layerConfig.layer) {
-                    if (layerConfig.layer.source === sourceId) {
-                        currentMap.addLayer(layerConfig.layer as LayerSpecification);
-                    } else {
-                        console.error(`Layer ${layerId} source property ('${layerConfig.layer.source}') does not match configured sourceId ('${sourceId}'). Cannot add.`);
-                    }
-                } else {
-                    console.warn(`Layer ${layerId} does not have a 'source' property. Cannot add layer that requires a source.`);
-                }
-            } catch (error) {
-              console.error(`Error adding layer ${layerId}:`, error);
-            }
-        } else {
-            console.warn(`Source ${sourceId} not available when attempting to add layer ${layerId}. Waiting for 'sourcedata'...`);
-            currentMap.once('sourcedata', (e) => {
-                if (e.sourceId === sourceId && e.isSourceLoaded && currentMap.getSource(sourceId)) {
-                    console.log(`Source ${sourceId} loaded after delay, adding layer ${layerId}`);
-                    if (!currentMap.getLayer(layerId) && 'source' in layerConfig.layer && layerConfig.layer.source === sourceId) {
-                         try {
-                            currentMap.addLayer(layerConfig.layer as LayerSpecification);
-                         } catch (error) {
-                            console.error(`Error adding layer ${layerId} after sourcedata event:`, error);
-                         }
-                    }
-                }
-            });
-        }
-      } else if (!layerIsActive && layerExists) {
-        try {
-          console.log(`Removing layer: ${layerId}`);
-          currentMap.removeLayer(layerId);
-        } catch (error) {
-          console.error(`Error removing layer ${layerId}:`, error);
-        }
-
-        if (currentMap.getSource(sourceId)) {
-            const sourceUsedByOtherLayers = overlayLayers.some(otherLayer => 
-                otherLayer.id !== layerConfig.id && 
-                otherLayer.type !== 'placeholder' && 
-                currentActiveLayerIds.includes(otherLayer.id) && 
-                otherLayer.sourceId === sourceId 
-            );
-
-            if (!sourceUsedByOtherLayers) {
-                try {
-                    console.log(`Removing source: ${sourceId} as it's no longer used.`);
-                    currentMap.removeSource(sourceId);
-                } catch (error) {
-                    console.error(`Error removing source ${sourceId}:`, error);
-                }
-            } else {
-                console.log(`Source ${sourceId} still in use by other layers, not removing.`);
-            }
-        }
-      }
-    });
-  }
+  // updateLayers function moved to the top of the component
 
   // loadAsthmaData function moved to the top of the component
 

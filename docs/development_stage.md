@@ -283,3 +283,76 @@
   - Add predictive modeling capabilities
   - Implement spatial analysis tools (hotspot detection, cluster analysis)
   - Add temporal trend analysis with regression capabilities
+
+## Stage 8: Asthma Prevalence Data Integration and Bug Fixes
+
+- **Timestamp:** 2025-05-01
+- **Features Added/Fixed:**
+  - **Asthma Prevalence Choropleth Layer:**
+    - Added a new layer to visualize asthma prevalence rates by county across California
+    - Created utility functions in `src/utils/asthmaData.ts` to fetch and parse CSV data
+    - Implemented color scale from green (low prevalence) to red (high prevalence)
+    - Added interactive popups showing county name and asthma rate when clicking on counties
+  - **Bug Fixes:**
+    - Fixed issue with asthma choropleth showing incorrect colors (all dark) by correcting the MapLibre expression
+    - Updated fill-color expression to use `coalesce` to properly handle missing data
+    - Improved source handling when toggling the asthma layer on and off
+    - Added proper error handling and source existence checks in `applyAsthmaDataToMap` function
+    - Fixed React Hook dependency warnings in `MapView.tsx`
+    - Removed unused variables to resolve TypeScript/ESLint errors
+  - **Code Quality Improvements:**
+    - Moved the `loadAsthmaData` function definition before its usage to prevent reference errors
+    - Added more detailed logging for debugging purposes
+    - Improved error handling throughout the asthma data loading and application process
+    - Enhanced the layer activation logic to ensure proper source and layer handling
+- **Next Steps:**
+  - Add correlation analysis between asthma prevalence and wildfire exposure
+  - Implement time-series visualization of asthma rates
+  - Add more health-related datasets for comprehensive analysis
+  - Enhance the UI with more interactive controls for data exploration
+
+## Stage 9: Temperature Anomaly Layer Integration
+
+- **Timestamp:** 2025-05-01
+- **Features Added:**
+  - **Temperature Anomaly Layer:**
+    - Added a new "Temperature" button to the Toolbar (fifth button with temperature icon)
+    - Integrated temperature anomaly data from CSV files (2018-2023)
+    - Created utility functions in `src/utils/temperatureData.ts` to load and process temperature data
+    - Implemented choropleth map visualization using county boundaries
+    - Color-coded counties based on temperature anomaly values (blue for cooling to red for extreme warming)
+  - **Year Selection Feature:**
+    - Created a `TemperatureYearSelector` component to allow users to select specific years or view the average
+    - Added support for viewing data from individual years (2018-2023) or the averaged data
+    - Implemented dynamic data loading based on year selection
+    - Ensured proper state management between components
+  - **Enhanced MapView Component:**
+    - Added functionality to apply temperature data to county features using feature states
+    - Implemented proper loading states and error handling for temperature data
+    - Added event listeners to detect when the source data is fully loaded
+  - **Technical Improvements:**
+    - Refactored state management to handle temperature year selection across components
+    - Updated the overlay layers configuration to support the temperature anomaly layer
+    - Added proper TypeScript types for all new components and functions
+    - Ensured consistent UI behavior when toggling between different data layers
+- **Next Steps:**
+  - Add correlation analysis between temperature anomalies and fire occurrences
+  - Implement time-series visualization for temperature data
+  - Add additional environmental data layers for comprehensive analysis
+  - Enhance the UI with more interactive controls for data exploration
+
+## Stage 10: Fire Layer Ordering Fix
+
+- **Timestamp:** 2025-05-01
+- **Issue Fixed:**
+  - Resolved a bug where the California fire perimeters layer and US fire events layer were sometimes rendering *underneath* other choropleth overlay layers (like Asthma Prevalence or Temperature Anomaly) instead of always being on top.
+  - **Root Cause:** The initial implementation of `ensureFireLayerOnTop` in `FireDataContext.tsx` relied on `document.querySelectorAll` and the internal `_map` property, which failed due to timing issues (running before the map instance was properly attached).
+  - **Solution:**
+    - Modified `ensureFireLayerOnTop` to accept the `maplibregl.Map` instance as a direct argument.
+    - Updated the call site within the `updateLayers` function in `MapView.tsx` to pass `mapRef.current` (the map instance) directly to `ensureFireLayerOnTop`.
+    - Removed the unreliable `setTimeout` wrapper around the call in `MapView.tsx`.
+    - Added checks within `ensureFireLayerOnTop` to ensure the map is idle (`isStyleLoaded`, not moving/zooming/rotating) or wait for the `idle` event before attempting `moveLayer`.
+- **Result:** Fire layers now reliably render on top of all other overlay layers.
+- **Next Steps:**
+  - Continue development of spatio-temporal analysis features.
+  - Further UI refinements.

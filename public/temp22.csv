@@ -1,0 +1,59 @@
+ID,Name,State,Value,Anomaly (1901-2000 base period),Rank,1901-2000 Mean
+CA-001,Alameda County,California,60.4,2.5,125,57.9
+CA-003,Alpine County,California,45.6,2.3,122,43.3
+CA-005,Amador County,California,59.4,2.1,122,57.2
+CA-007,Butte County,California,62,3.2,127,58.8
+CA-009,Calaveras County,California,59.9,2.2,123,57.6
+CA-011,Colusa County,California,62.7,2.3,124,60.4
+CA-013,Contra Costa County,California,61.5,2.7,126,58.8
+CA-015,Del Norte County,California,53.5,2.6,126,50.8
+CA-017,El Dorado County,California,55.4,2.1,124,53.4
+CA-019,Fresno County,California,57.3,2.9,124,54.4
+CA-021,Glenn County,California,62,2.7,125,59.3
+CA-023,Humboldt County,California,54.1,1.2,105,53
+CA-025,Imperial County,California,75.7,3.5,126,72.2
+CA-027,Inyo County,California,62.3,2.7,122,59.6
+CA-029,Kern County,California,63.4,2.9,123,60.5
+CA-031,Kings County,California,65.1,2.6,122,62.5
+CA-033,Lake County,California,58.3,2,122,56.3
+CA-035,Lassen County,California,47.6,1.4,105,46.1
+CA-037,Los Angeles County,California,63.8,4,127,59.9
+CA-039,Madera County,California,57.9,2.7,125,55.1
+CA-041,Marin County,California,56.6,1.8,116,54.8
+CA-043,Mariposa County,California,56.6,2.1,121,54.5
+CA-045,Mendocino County,California,56.4,1.5,119,54.8
+CA-047,Merced County,California,63.4,2.4,125,61
+CA-049,Modoc County,California,48.4,2.8,124,45.6
+CA-051,Mono County,California,45.6,2.4,120,43.3
+CA-053,Monterey County,California,59.7,2.5,122,57.2
+CA-055,Napa County,California,60.6,2.4,123,58.2
+CA-057,Nevada County,California,53.8,2,124,51.7
+CA-059,Orange County,California,66.1,3.8,127,62.4
+CA-061,Placer County,California,55.1,2,124,53
+CA-063,Plumas County,California,48.3,1.5,110,46.8
+CA-065,Riverside County,California,70.4,3.6,128,66.8
+CA-067,Sacramento County,California,63.6,2.5,125,61.1
+CA-069,San Benito County,California,60,2.6,121,57.4
+CA-071,San Bernardino County,California,68,3,122,65.1
+CA-073,San Diego County,California,64.3,3.1,124,61.2
+CA-075,San Francisco County,California,57.3,1.5,112,55.8
+CA-077,San Joaquin County,California,63.6,2.9,124,60.7
+CA-079,San Luis Obispo County,California,60.8,2.8,122,58
+CA-081,San Mateo County,California,57,1.6,111,55.4
+CA-083,Santa Barbara County,California,59.7,3.1,123,56.6
+CA-085,Santa Clara County,California,59.4,2.5,121,56.9
+CA-087,Santa Cruz County,California,57.7,2,116,55.7
+CA-089,Shasta County,California,56.9,2.6,125,54.3
+CA-091,Sierra County,California,48.4,2,121,46.4
+CA-093,Siskiyou County,California,50.6,2.7,124,47.8
+CA-095,Solano County,California,62.2,2.4,126,59.7
+CA-097,Sonoma County,California,57.8,1.7,116,56.1
+CA-099,Stanislaus County,California,62.7,2.3,122,60.4
+CA-101,Sutter County,California,64.2,2.4,123,61.8
+CA-103,Tehama County,California,60.7,2.8,127,57.9
+CA-105,Trinity County,California,54.2,2.6,125,51.6
+CA-107,Tulare County,California,56,2.7,125,53.2
+CA-109,Tuolumne County,California,51.4,1.8,119,49.6
+CA-111,Ventura County,California,59.8,3.8,127,56
+CA-113,Yolo County,California,63,2.1,122,60.9
+CA-115,Yuba County,California,62.5,2.6,125,59.8

@@ -35,7 +35,7 @@ fire_web/
 │   │   ├── mapStyles.ts      # Defines available basemap styles
 │   │   └── overlayLayers.ts  # Defines available overlay layers
 │   ├── contexts/
-│   │   └── FireDataContext.tsx # Context for managing fire perimeter data across components, with filtering and caching
+│   │   └── FireDataContext.tsx # A React Context provider that centralizes fire data management. It fetches California fire perimeter data from the ArcGIS REST API, caches it client-side, provides filtering capabilities, and calculates statistics. **Includes an `ensureFireLayerOnTop` function to programmatically move fire-related layers to the top of the map's layer stack, ensuring visibility over other choropleth layers.** This context allows components to access and manipulate the same data without redundant API calls.
 │   ├── utils/
 │   │   ├── asthmaData.ts       # Utility functions for processing asthma prevalence data
 │   │   └── ...                 # Other utility files
@@ -64,7 +64,7 @@ fire_web/
 *   **`src/components/LayerSwitcher.tsx`**: A UI component, typically shown adjacent to the Toolbar, allowing users to toggle the visibility of overlay layers.
 *   **`src/components/Legend.tsx`**: A UI component, typically positioned at the bottom-right, that displays legends for currently active overlay layers. Supports both image-based legends (via `legendUrl`) and gradient-type legends with color swatches (via `legend` configuration).
 *   **`src/components/FireAnalysisSidebar.tsx`**: A sophisticated sidebar component that provides comprehensive fire data analysis tools. Features include statistical summaries (total fires, acres, average size), interactive visualizations (bar charts for years, horizontal bars for causes), and multi-criteria filtering (by year, size, cause, agency). Opens when the user clicks the Analysis button in the toolbar.
-*   **`src/contexts/FireDataContext.tsx`**: A React Context provider that centralizes fire data management. It fetches California fire perimeter data from the ArcGIS REST API, caches it client-side, provides filtering capabilities, and calculates statistics. This context allows components to access and manipulate the same data without redundant API calls.
+*   **`src/contexts/FireDataContext.tsx`**: A React Context provider that centralizes fire data management. It fetches California fire perimeter data from the ArcGIS REST API, caches it client-side, provides filtering capabilities, and calculates statistics. **Includes an `ensureFireLayerOnTop` function to programmatically move fire-related layers to the top of the map's layer stack, ensuring visibility over other choropleth layers.** This context allows components to access and manipulate the same data without redundant API calls.
 *   **`src/config/mapStyles.ts`**: Defines available basemap styles (name, ID, MapLibre style object/URL).
 *   **`src/config/overlayLayers.ts`**: 
     **Description:** Defines the configuration for various map overlay layers that can be toggled by the user. Each layer object specifies its ID, display name, type (e.g., 'tile', 'wms', 'geojson', 'vector', 'raster'), source ID, source definition (URL or MapLibre SourceSpecification), MapLibre layer specification for styling, initial visibility, and optional legend info.

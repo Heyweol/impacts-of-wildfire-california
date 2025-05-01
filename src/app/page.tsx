@@ -19,6 +19,7 @@ export default function Home() {
   const [dataMinSize, setDataMinSize] = useState<number | null>(null); // Actual min from data
   const [dataMaxSize, setDataMaxSize] = useState<number | null>(null); // Actual max from data
   const [isAnalysisSidebarOpen, setIsAnalysisSidebarOpen] = useState<boolean>(false); // State for analysis sidebar
+  const [selectedTemperatureYear, setSelectedTemperatureYear] = useState<number | null>(null); // State for temperature year
 
   const handleLayerToggle = (layerId: string) => {
     setActiveLayerIds(prev => 
@@ -45,6 +46,17 @@ export default function Home() {
   const toggleAnalysisSidebar = () => {
     setIsAnalysisSidebarOpen(!isAnalysisSidebarOpen);
   };
+  
+  // Handler for temperature year changes
+  const handleTemperatureYearChange = useCallback((year: number | null) => {
+    console.log(`Temperature year changed to: ${year === null ? 'average' : `20${year}`}`);
+    setSelectedTemperatureYear(year);
+    
+    // If the temperature layer is not active, activate it
+    if (!activeLayerIds.includes('california-temperature-anomaly')) {
+      setActiveLayerIds(prev => [...prev, 'california-temperature-anomaly']);
+    }
+  }, [activeLayerIds]);
 
   return (
     <FireDataProvider>
@@ -54,6 +66,7 @@ export default function Home() {
           activeLayerIds={activeLayerIds}
           minIncidentSize={minIncidentSize}
           onDataRangeLoad={handleDataRangeLoad} // Pass callback down
+          selectedTemperatureYear={selectedTemperatureYear} // Pass selected temperature year
         />
         <Toolbar 
           activeStyleId={activeStyleId} 
@@ -61,6 +74,7 @@ export default function Home() {
           activeLayerIds={activeLayerIds}
           onLayerToggle={handleLayerToggle}
           onOpenAnalysis={toggleAnalysisSidebar}
+          onTemperatureYearChange={handleTemperatureYearChange} // Pass temperature year change handler
         />
         <Legend layers={overlayLayers} activeLayerIds={activeLayerIds} />
         <FireAnalysisSidebar 

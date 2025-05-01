@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import BasemapSwitcher from './BasemapSwitcher';
 import LayerSwitcher from './LayerSwitcher';
+import TemperatureYearSelector from './TemperatureYearSelector';
 
 // Define props for the Toolbar
 interface ToolbarProps {
@@ -13,6 +14,8 @@ interface ToolbarProps {
   onLayerToggle: (layerId: string) => void;
   // Add props for analysis sidebar
   onOpenAnalysis: () => void;
+  // Add props for temperature year selection
+  onTemperatureYearChange?: (year: number | null) => void;
 }
 
 // Placeholder icons (replace with actual icons later)
@@ -30,18 +33,25 @@ const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w
 // Health/Lungs Icon for Asthma data
 const LungsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v7.5M9 12.75V19.5m0-6.75l-3-3m3 3l3-3m-6 3V4.5m6 9v-6.75" /></svg>;
 
+// Temperature Icon for Temperature Anomaly data
+const TemperatureIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 004.5 9.375v6.75A1.125 1.125 0 005.625 17.25h1.5a3.375 3.375 0 003.375-3.375V14.25m0 0v-3.375a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 004.5 9.375v6.75A1.125 1.125 0 005.625 17.25h1.5a3.375 3.375 0 003.375-3.375v-3" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" /></svg>;
+
 const Toolbar: React.FC<ToolbarProps> = ({ 
   activeStyleId, 
   onStyleChange,
   activeLayerIds, // Receive layer state
   onLayerToggle,  // Receive layer toggle handler
-  onOpenAnalysis // Receive analysis sidebar handler
+  onOpenAnalysis, // Receive analysis sidebar handler
+  onTemperatureYearChange // Temperature year change handler
 }) => {
   const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
   const [isLayerSwitcherVisible, setIsLayerSwitcherVisible] = useState(false); // State for LayerSwitcher
   const [isFireLayerActive, setIsFireLayerActive] = useState(false); // State for Fire layer
   const [isAsthmaLayerActive, setIsAsthmaLayerActive] = useState(false); // State for Asthma layer
-  const buttons = Array(5).fill(null); // Create 5 buttons now
+  const [isTemperatureLayerActive, setIsTemperatureLayerActive] = useState(false); // State for Temperature layer
+  const [isTemperatureYearSelectorVisible, setIsTemperatureYearSelectorVisible] = useState(false); // State for Temperature year selector
+  const [selectedTemperatureYear, setSelectedTemperatureYear] = useState<number | null>(null); // null means average
+  const buttons = Array(6).fill(null); // Create 6 buttons now (added temperature button)
 
   return (
     <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10">
@@ -51,7 +61,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
           const isLayersButton = index === 1;
           const isFireButton = index === 2;
           const isAsthmaButton = index === 3;
-          const isAnalysisButton = index === 4;
+          const isTemperatureButton = index === 4;
+          const isAnalysisButton = index === 5;
           // Assign Icons based on index
           let Icon = PlaceholderIcon;
           let label = `Tool ${index + 1}`;
@@ -73,6 +84,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
               Icon = LungsIcon;
               label = "Asthma Data";
               isActive = isAsthmaLayerActive;
+          } else if (isTemperatureButton) {
+              Icon = TemperatureIcon;
+              label = "Temperature";
+              isActive = isTemperatureLayerActive || isTemperatureYearSelectorVisible;
           } else if (isAnalysisButton) {
               Icon = ChartIcon;
               label = "Analysis";
@@ -92,9 +107,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 if (isBasemapButton) {
                   setIsSwitcherVisible(!isSwitcherVisible);
                   setIsLayerSwitcherVisible(false);
+                  setIsTemperatureYearSelectorVisible(false);
                 } else if (isLayersButton) {
                   setIsLayerSwitcherVisible(!isLayerSwitcherVisible);
                   setIsSwitcherVisible(false);
+                  setIsTemperatureYearSelectorVisible(false);
                 } else if (isFireButton) {
                   // Toggle the fire layer
                   const newState = !isFireLayerActive;
@@ -119,10 +136,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   else if (!newState && activeLayerIds.includes('california-asthma-prevalence')) {
                     onLayerToggle('california-asthma-prevalence');
                   }
+                } else if (isTemperatureButton) {
+                  // Toggle the temperature layer
+                  const newState = !isTemperatureLayerActive;
+                  setIsTemperatureLayerActive(newState);
+                  
+                  if (newState) {
+                    // If turning on, show year selector and add the layer
+                    setIsTemperatureYearSelectorVisible(true);
+                    if (!activeLayerIds.includes('california-temperature-anomaly')) {
+                      onLayerToggle('california-temperature-anomaly');
+                    }
+                  } else {
+                    // If turning off, hide year selector and remove the layer
+                    setIsTemperatureYearSelectorVisible(false);
+                    if (activeLayerIds.includes('california-temperature-anomaly')) {
+                      onLayerToggle('california-temperature-anomaly');
+                    }
+                  }
                 } else if (isAnalysisButton) {
                   // Close other panels
                   setIsSwitcherVisible(false);
                   setIsLayerSwitcherVisible(false);
+                  setIsTemperatureYearSelectorVisible(false);
                   // Open analysis sidebar
                   onOpenAnalysis();
                 }
@@ -152,6 +188,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
           onLayerToggle={onLayerToggle} // Pass handler down
           onClose={() => setIsLayerSwitcherVisible(false)}
         />
+      )}
+      {/* Conditionally render the Temperature Year selector */}
+      {isTemperatureYearSelectorVisible && (
+        <div className="relative">
+          <TemperatureYearSelector
+            selectedYear={selectedTemperatureYear}
+            onYearChange={(year) => {
+              setSelectedTemperatureYear(year);
+              // Call the parent handler to update the map
+              if (onTemperatureYearChange) {
+                onTemperatureYearChange(year);
+              }
+            }}
+            onClose={() => setIsTemperatureYearSelectorVisible(false)}
+          />
+        </div>
       )}
     </div>
   );
