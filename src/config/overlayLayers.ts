@@ -1,6 +1,17 @@
 import { SourceSpecification, LayerSpecification } from 'maplibre-gl';
 
 // Define the structure for an overlay layer configuration
+export interface LegendItem {
+  label: string;
+  color: string;
+}
+
+export interface LegendConfig {
+  type: 'basic' | 'gradient' | 'custom';
+  title?: string;
+  items?: LegendItem[];
+}
+
 export interface OverlayLayerConfig {
   id: string;                        // Unique identifier for the *concept* of the layer (e.g., 'us-states')
   name: string;                      // Display name for the layer switcher
@@ -10,10 +21,7 @@ export interface OverlayLayerConfig {
   layer: LayerSpecification;         // MapLibre layer specification for styling (MUST reference sourceId)
   visibleInitially: boolean;        // Whether the layer is visible by default
   initiallyVisible?: boolean;        // Whether the layer is visible by default
-  legend?: {                         // Optional legend configuration
-    type: 'basic' | 'gradient' | 'custom';
-    // Add more legend properties as needed
-  };
+  legend?: LegendConfig;             // Optional legend configuration
   legendUrl?: string;                // Optional URL for a legend image (e.g., WMS GetLegendGraphic)
   // Add other potential properties like description, attribution, minZoom, maxZoom etc.
 }
@@ -64,6 +72,54 @@ export const overlayLayers: OverlayLayerConfig[] = [
     },
     visibleInitially: true, // Always visible
     initiallyVisible: true, // Always visible
+  },
+  {
+    id: 'california-fire-perimeters',
+    name: 'California Fire Perimeters (2018+)',
+    type: 'geojson',
+    sourceId: 'california-fire-perimeters-source',
+    sourceDefinition: {
+      type: 'geojson',
+      data: 'https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Historic_Fire_Perimeters/FeatureServer/0/query?where=YEAR_>=2018&outFields=*&f=geojson&outSR=4326&resultRecordCount=2000',
+      generateId: true
+    },
+    layer: {
+      id: 'california-fire-perimeters-layer',
+      type: 'fill',
+      source: 'california-fire-perimeters-source',
+      paint: {
+        'fill-color': [
+          'interpolate',
+          ['linear'],
+          ['get', 'YEAR_'],
+          2018, '#FFC107',
+          2019, '#FF9800',
+          2020, '#FF5722',
+          2021, '#E91E63',
+          2022, '#9C27B0',
+          2023, '#673AB7'
+        ],
+        'fill-opacity': 0.7,
+        'fill-outline-color': '#000000'
+      },
+      layout: {
+        visibility: 'visible'
+      }
+    },
+    legend: {
+      type: 'gradient',
+      title: 'Fire Year',
+      items: [
+        { label: '2018', color: '#FFC107' },
+        { label: '2019', color: '#FF9800' },
+        { label: '2020', color: '#FF5722' },
+        { label: '2021', color: '#E91E63' },
+        { label: '2022', color: '#9C27B0' },
+        { label: '2023', color: '#673AB7' }
+      ]
+    },
+    visibleInitially: false,
+    initiallyVisible: false,
   },
 
  ];

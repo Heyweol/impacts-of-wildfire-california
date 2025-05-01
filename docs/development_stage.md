@@ -138,9 +138,98 @@
   - Deploy to Vercel (e.g., by connecting the GitHub repository to Vercel).
   - Add more overlay layers and functionality.
 
-## Next Steps
+## Stage 5: Refocus on California Wildfire Data
 
-*   Implement header/navigation.
-*   Add sidebar for controls/layers.
-*   Integrate wildfire data sources.
-*   Refine map styling and base layers (potentially using an API key for better styles).
+- **Timestamp:** 2025-05-01
+- **Features Modified:**
+  - **Removed Unnecessary Layers:**
+    - Removed all radar and weather layers from `src/config/overlayLayers.ts`
+    - Removed the US Fire Events layer and button
+    - Kept only the US state boundary layer in the layer switcher
+  - **Added California-Specific Data:**
+    - Added California county boundaries layer using local GeoJSON file (`public/California_County_Boundaries_simplified.json`)
+    - Set California county boundaries to be always visible by default
+  - **UI Simplification:**
+    - Reduced the number of buttons in the toolbar from 6 to 2
+    - Kept only the basemap switcher and layer toggler buttons
+    - Removed the fire events button
+  - **Documentation Updates:**
+    - Updated `docs/files.md` to reflect the changes to overlay layers and toolbar
+    - Updated `docs/development_stage.md` with this new stage information
+- **Next Steps:**
+  - Implement header/navigation
+  - Add sidebar for controls/layers
+  - Integrate California-specific wildfire data sources
+  - Implement spatio-temporal analysis features
+  - Refine map styling and base layers
+
+## Stage 6: California Historic Fire Perimeters Integration
+
+- **Timestamp:** 2025-05-01
+- **Features Added:**
+  - **California Fire Perimeters Layer:**
+    - Added a new "Fire!" button to the Toolbar (third button with fire icon)
+    - Integrated California Historic Fire Perimeters data from ArcGIS REST API (`https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Historic_Fire_Perimeters/FeatureServer/0`)
+    - Configured the layer to display fires from 2018-2023
+    - Implemented color gradient styling based on fire year (yellow for 2018 to deep purple for 2023)
+    - Added interactive popups showing detailed fire information when clicking on a perimeter:
+      - Fire name
+      - Year
+      - Size in acres
+      - Start and containment dates
+      - Managing agency
+      - Fire cause (with human-readable descriptions)
+  - **Enhanced Legend Component:**
+    - Updated the Legend component to support gradient-type legends with color swatches
+    - Added a color-coded legend for the fire perimeters layer showing the year-to-color mapping
+    - Ensured the legend only appears when relevant layers are active
+  - **Loading Indicator:**
+    - Created a new LoadingIndicator component to provide visual feedback during data loading
+    - Implemented loading state tracking in MapView for the fire perimeters layer
+    - Added event listeners to detect when the source data is fully loaded
+    - Displays a centered spinner with "Loading California fire perimeters..." message
+  - **Bug Fixes:**
+    - Fixed an issue with the ArcGIS REST API endpoint by switching from vector tiles to GeoJSON format
+    - Corrected the field name for fire year (`YEAR_` instead of `FIRE_YEAR`)
+    - Added proper error handling for source loading
+- **Next Steps:**
+  - Add time-based filtering for fire perimeters
+  - Implement statistics and analytics for fire data
+  - Add additional California-specific wildfire data sources
+  - Enhance the UI with more interactive controls
+  - Implement spatio-temporal analysis features
+
+## Stage 7: Fire Data Analysis System
+
+- **Timestamp:** 2025-05-01
+- **Features Added:**
+  - **Data Caching and Management:**
+    - Created a FireDataContext to cache and manage fire perimeters data client-side
+    - Implemented data fetching with proper loading states and error handling
+    - Added filtering capabilities by year, size, cause, and agency
+    - Connected the filtered data to the map display for real-time filtering
+    - Increased the data query limit to 2000 records for more comprehensive analysis
+  - **Analysis Sidebar:**
+    - Added a "Analysis" button (fourth button with chart icon) to the Toolbar
+    - Created a FireAnalysisSidebar component that displays when the Analysis button is clicked
+    - Implemented a sliding sidebar with summary statistics and filter controls
+    - Added visualizations including:
+      - Fire count by year histogram
+      - Top fire causes bar chart
+      - Filter selections with counts
+    - Provided filter controls for years, fire size, causes, and agencies
+  - **Interactive Filtering:**
+    - Filter selections visually highlight affected data in the visualizations
+    - Added "Apply" button to update the map with the selected filters
+    - Connected the filtered data to the MapView component for synchronized display
+    - Added "Reset" button to clear all filters
+  - **Performance Improvements:**
+    - Implemented client-side filtering to avoid repeated API requests
+    - Added real-time statistical calculations as filters change
+    - Optimized MapLibre source updates to maintain smooth performance
+- **Next Steps:**
+  - Add more detailed visualizations (time series, heat maps, etc.)
+  - Implement export/download functionality for filtered data
+  - Add comparison capabilities between different time periods
+  - Integrate with additional data sources for correlation analysis
+  - Add predictive modeling capabilities

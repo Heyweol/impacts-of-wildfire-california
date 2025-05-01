@@ -33,6 +33,30 @@ export const mapStyles: BasemapStyle[] = [
     }
   },
   {
+    id: 'clean-light',
+    name: 'Light',
+    style: {
+      version: 8,
+      sources: {
+        'carto-light-tiles': {
+          type: 'raster',
+          tiles: ['https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          maxzoom: 19
+        },
+      },
+      layers: [
+        {
+          id: 'carto-light-layer',
+          type: 'raster',
+          source: 'carto-light-tiles',
+        },
+      ],
+    },
+  },
+  {
     id: 'opentopomap',
     name: 'Terrain',
     style: {
@@ -83,4 +107,4 @@ export const mapStyles: BasemapStyle[] = [
   }
 ];
 
-export const defaultMapStyle = mapStyles[0]; // Default to Streets
+export const defaultMapStyle = mapStyles[1]; // Default to Light

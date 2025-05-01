@@ -5,6 +5,8 @@ import MapWrapper from '@/components/MapWrapper';
 import Toolbar from '@/components/Toolbar';
 import Legend from '@/components/Legend';
 import FilterSlider from '@/components/FilterSlider';
+import FireAnalysisSidebar from '@/components/FireAnalysisSidebar';
+import { FireDataProvider } from '@/contexts/FireDataContext';
 import { defaultMapStyle } from '@/config/mapStyles';
 import { overlayLayers } from '@/config/overlayLayers';
 
@@ -16,6 +18,7 @@ export default function Home() {
   const [minIncidentSize, setMinIncidentSize] = useState<number>(0); // Current filter value
   const [dataMinSize, setDataMinSize] = useState<number | null>(null); // Actual min from data
   const [dataMaxSize, setDataMaxSize] = useState<number | null>(null); // Actual max from data
+  const [isAnalysisSidebarOpen, setIsAnalysisSidebarOpen] = useState<boolean>(false); // State for analysis sidebar
 
   const handleLayerToggle = (layerId: string) => {
     setActiveLayerIds(prev => 
@@ -39,39 +42,50 @@ export default function Home() {
 
   const isFireLayerActive = activeLayerIds.includes('us-fire-events-wfigs');
 
-  return (
-    <main className="relative h-screen w-screen">
-      <MapWrapper 
-        activeStyleId={activeStyleId} 
-        activeLayerIds={activeLayerIds}
-        minIncidentSize={minIncidentSize}
-        onDataRangeLoad={handleDataRangeLoad} // Pass callback down
-      />
-      <Toolbar 
-        activeStyleId={activeStyleId} 
-        onStyleChange={setActiveStyleId} 
-        activeLayerIds={activeLayerIds}
-        onLayerToggle={handleLayerToggle}
-      />
-      <Legend layers={overlayLayers} activeLayerIds={activeLayerIds} />
+  const toggleAnalysisSidebar = () => {
+    setIsAnalysisSidebarOpen(!isAnalysisSidebarOpen);
+  };
 
-      {isFireLayerActive && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-1/3 min-w-[300px]">
-          <FilterSlider
-            // Use calculated range from data, provide defaults while loading
-            min={dataMinSize ?? 0} 
-            max={dataMaxSize ?? 100000} 
-            // Calculate step dynamically or keep fixed? Fixed for now.
-            step={Math.max(1, Math.round(( (dataMaxSize ?? 100000) - (dataMinSize ?? 0) ) / 100))} // Aim for ~100 steps
-            value={minIncidentSize}
-            onChange={handleFilterChange}
-            label="Min Fire Size"
-            unit="acres"
-            // Disable if layer isn't active OR data range hasn't loaded yet
-            disabled={!isFireLayerActive || dataMinSize === null}
-          />
-        </div>
-      )}
-    </main>
+  return (
+    <FireDataProvider>
+      <main className="relative h-screen w-screen">
+        <MapWrapper 
+          activeStyleId={activeStyleId} 
+          activeLayerIds={activeLayerIds}
+          minIncidentSize={minIncidentSize}
+          onDataRangeLoad={handleDataRangeLoad} // Pass callback down
+        />
+        <Toolbar 
+          activeStyleId={activeStyleId} 
+          onStyleChange={setActiveStyleId} 
+          activeLayerIds={activeLayerIds}
+          onLayerToggle={handleLayerToggle}
+          onOpenAnalysis={toggleAnalysisSidebar}
+        />
+        <Legend layers={overlayLayers} activeLayerIds={activeLayerIds} />
+        <FireAnalysisSidebar 
+          isOpen={isAnalysisSidebarOpen} 
+          onClose={() => setIsAnalysisSidebarOpen(false)} 
+        />
+
+        {isFireLayerActive && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-1/3 min-w-[300px]">
+            <FilterSlider
+              // Use calculated range from data, provide defaults while loading
+              min={dataMinSize ?? 0} 
+              max={dataMaxSize ?? 100000} 
+              // Calculate step dynamically or keep fixed? Fixed for now.
+              step={Math.max(1, Math.round(( (dataMaxSize ?? 100000) - (dataMinSize ?? 0) ) / 100))} // Aim for ~100 steps
+              value={minIncidentSize}
+              onChange={handleFilterChange}
+              label="Min Fire Size"
+              unit="acres"
+              // Disable if layer isn't active OR data range hasn't loaded yet
+              disabled={!isFireLayerActive || dataMinSize === null}
+            />
+          </div>
+        )}
+      </main>
+    </FireDataProvider>
   );
 }

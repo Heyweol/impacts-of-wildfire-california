@@ -11,6 +11,8 @@ interface ToolbarProps {
   // Add props for layer management
   activeLayerIds: string[];
   onLayerToggle: (layerId: string) => void;
+  // Add props for analysis sidebar
+  onOpenAnalysis: () => void;
 }
 
 // Placeholder icons (replace with actual icons later)
@@ -19,17 +21,23 @@ const PlaceholderIcon = () => <svg className="w-6 h-6" fill="none" stroke="curre
 const GlobeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h8a2 2 0 002-2v-1a2 2 0 012-2h1.945M12 4.5v6.989l-2.256 1.008M12 4.5a9 9 0 11-7.929 11.515M12 4.5v6.989l2.256 1.008m4.83 4.491l.949 1.5M4.22 20.515l.949-1.5M12 21.75c-2.676 0-5.216-.584-7.499-1.632" /></svg>;
 // Layers Icon
 const LayersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>;
-// Simple Fire Icon Placeholder - Removed
+// Fire Icon
+const FireIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 16.121A3 3 0 1012.015 11.1c.248.6.4 1.2.4 1.9a2.986 2.986 0 01-1.425 2.56" /></svg>;
+
+// Chart/Analysis Icon
+const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>;
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
   activeStyleId, 
   onStyleChange,
   activeLayerIds, // Receive layer state
-  onLayerToggle   // Receive layer toggle handler
+  onLayerToggle,  // Receive layer toggle handler
+  onOpenAnalysis // Receive analysis sidebar handler
 }) => {
   const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
   const [isLayerSwitcherVisible, setIsLayerSwitcherVisible] = useState(false); // State for LayerSwitcher
-  const buttons = Array(2).fill(null); // Create 2 buttons only
+  const [isFireLayerActive, setIsFireLayerActive] = useState(false); // State for Fire layer
+  const buttons = Array(4).fill(null); // Create 4 buttons now
 
   return (
     <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10">
@@ -37,6 +45,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {buttons.map((_, index) => {
           const isBasemapButton = index === 0;
           const isLayersButton = index === 1;
+          const isFireButton = index === 2;
+          const isAnalysisButton = index === 3;
           // Assign Icons based on index
           let Icon = PlaceholderIcon;
           let label = `Tool ${index + 1}`;
@@ -50,6 +60,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
               Icon = LayersIcon;
               label = "Layers";
               isActive = isLayerSwitcherVisible;
+          } else if (isFireButton) {
+              Icon = FireIcon;
+              label = "Fire!";
+              isActive = isFireLayerActive;
+          } else if (isAnalysisButton) {
+              Icon = ChartIcon;
+              label = "Analysis";
+              isActive = false;
           }
 
           // Conditional styling for active state
@@ -68,8 +86,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 } else if (isLayersButton) {
                   setIsLayerSwitcherVisible(!isLayerSwitcherVisible);
                   setIsSwitcherVisible(false);
+                } else if (isFireButton) {
+                  // Toggle the fire layer
+                  const newState = !isFireLayerActive;
+                  setIsFireLayerActive(newState);
+                  // If the fire layer is not already in activeLayerIds, add it
+                  if (newState && !activeLayerIds.includes('california-fire-perimeters')) {
+                    onLayerToggle('california-fire-perimeters');
+                  } 
+                  // If the fire layer is in activeLayerIds and we're turning it off, remove it
+                  else if (!newState && activeLayerIds.includes('california-fire-perimeters')) {
+                    onLayerToggle('california-fire-perimeters');
+                  }
+                } else if (isAnalysisButton) {
+                  // Close other panels
+                  setIsSwitcherVisible(false);
+                  setIsLayerSwitcherVisible(false);
+                  // Open analysis sidebar
+                  onOpenAnalysis();
                 }
-                // Add onClick handlers for other buttons later
               }}
             >
               <Icon />

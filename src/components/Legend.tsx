@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import { OverlayLayerConfig } from '@/config/overlayLayers';
+import { OverlayLayerConfig, LegendItem } from '@/config/overlayLayers';
 
 interface LegendProps {
   layers: OverlayLayerConfig[];
@@ -9,7 +9,7 @@ interface LegendProps {
 
 const Legend: React.FC<LegendProps> = ({ layers, activeLayerIds }) => {
   const activeLegends = layers.filter(
-    (layer) => activeLayerIds.includes(layer.id) && layer.legendUrl
+    (layer) => activeLayerIds.includes(layer.id) && (layer.legendUrl || layer.legend)
   );
 
   if (activeLegends.length === 0) {
@@ -35,7 +35,25 @@ const Legend: React.FC<LegendProps> = ({ layers, activeLayerIds }) => {
                 className="max-w-full h-auto border border-gray-200 rounded-sm" // Added subtle border
               />
             )}
-            {!layer.legendUrl && (
+            {layer.legend?.type === 'gradient' && layer.legend.items && (
+              <div className="mt-1">
+                {layer.legend.title && (
+                  <p className="text-xs font-medium text-gray-700 mb-1">{layer.legend.title}</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {layer.legend.items.map((item: LegendItem, index: number) => (
+                    <div key={index} className="flex items-center">
+                      <div 
+                        className="w-4 h-4 mr-1 rounded-sm" 
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-xs text-gray-700">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!layer.legendUrl && !layer.legend && (
               <p className="text-xs text-gray-500">No legend available.</p>
             )}
           </div>
