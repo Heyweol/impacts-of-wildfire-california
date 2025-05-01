@@ -11,12 +11,12 @@ export async function fetchAsthmaData(): Promise<Record<string, number>> {
     
     // Parse CSV
     const lines = csvText.split('\n');
-    const header = lines[0].split(',');
+    // Skip header row (first line)
     
     // Create an object of county names to prevalence rates
     const asthmaRatesByCounty: Record<string, number> = {};
     
-    // Skip header row and process data
+    // Process data starting from line 1 (after header)
     for (let i = 1; i < lines.length; i++) {
       const row = lines[i].split(',');
       if (row.length < 5) continue; // Skip incomplete rows

@@ -17,22 +17,31 @@ interface MapViewProps {
 }
 
 const applyAsthmaDataToMap = (currentMap: Map, data: Record<string, number>) => {
-  // No need to query features first, just iterate through the data
-  // and set state directly using the county name as the ID.
+  // First, check if the source exists before trying to set feature states
+  const sourceId = 'california-county-boundaries-source';
+  if (!currentMap.getSource(sourceId)) {
+    console.warn(`[applyAsthmaDataToMap] Source '${sourceId}' does not exist in the map. Cannot set feature states.`);
+    return;
+  }
+  
+  // Iterate through the data and set state directly using the county name as the ID
   for (const countyName in data) {
     if (Object.prototype.hasOwnProperty.call(data, countyName)) {
       const rate = data[countyName];
-      // Use countyName directly as the feature ID
-      console.log(`[applyAsthmaDataToMap] Setting state for ${countyName} (ID: ${countyName}) with rate: ${rate}`);
-      currentMap.setFeatureState(
-        { source: 'california-county-boundaries-source', id: countyName }, // <-- Use countyName here
-        { asthmaRate: rate }
-      );
-      // Verify state immediately after setting (optional, for debugging)
-      // const state = currentMap.getFeatureState({ source: 'california-county-boundaries-source', id: countyName });
-      // console.log(`[applyAsthmaDataToMap] State for ${countyName} after set:`, state);
+      try {
+        // Use countyName directly as the feature ID
+        console.log(`[applyAsthmaDataToMap] Setting state for ${countyName} (ID: ${countyName}) with rate: ${rate}`);
+        currentMap.setFeatureState(
+          { source: sourceId, id: countyName },
+          { asthmaRate: rate }
+        );
+      } catch (error) {
+        console.error(`[applyAsthmaDataToMap] Error setting feature state for ${countyName}:`, error);
+      }
     }
   }
+  
+  console.log(`[applyAsthmaDataToMap] Applied asthma data to ${Object.keys(data).length} counties.`);
 
   // Optional: Log to confirm state is being set
   console.log('Applied asthma data using COUNTY_NAME as ID.');
@@ -65,6 +74,22 @@ const MapView: React.FC<MapViewProps> = ({
   
   // Store the asthma data
   const [asthmaData, setAsthmaData] = useState<Record<string, number> | null>(null);
+
+  // Define loadAsthmaData function before it's used in useEffect
+  const loadAsthmaData = useCallback(async () => {
+    console.log('Attempting to load asthma data...');
+    setIsAsthmaDataLoading(true);
+    try {
+      const data = await fetchAsthmaData(); // Fetch data using the utility function
+      console.log(`Asthma data loaded successfully for ${Object.keys(data).length} counties.`);
+      setAsthmaData(data);
+    } catch (error) {
+      console.error('Error loading asthma data:', error);
+      setAsthmaData(null); // Set to null on error
+    } finally {
+      setIsAsthmaDataLoading(false);
+    }
+  }, []); // Depends only on fetchAsthmaData import
 
   // Find the initial style object based on the activeStyleId prop
   const initialStyle = mapStyles.find(style => style.id === activeStyleId)?.style || defaultMapStyle.style;
@@ -117,7 +142,7 @@ const MapView: React.FC<MapViewProps> = ({
     } catch (error) {
       console.error("Error setting map style:", error);
     }
-  }, [activeStyleId]); 
+  }, [activeStyleId, activeLayerIds]); // Added activeLayerIds as dependency
 
   useEffect(() => {
     if (!map.current) return; 
@@ -142,27 +167,39 @@ const MapView: React.FC<MapViewProps> = ({
       setIsFirePerimetersLoading(true);
     }
     
-    // If asthma layer is being activated, load asthma data
+    // If asthma layer is being activated, ensure source exists and load asthma data
     if (wasAsthmaLayerActive) {
-      // Set visibility to ensure the layer is displayed
-      if (currentMap.getLayer('california-asthma-prevalence-layer')) {
-        currentMap.setLayoutProperty('california-asthma-prevalence-layer', 'visibility', 'visible');
-        console.log('Set asthma layer to visible');
+      const countySourceId = 'california-county-boundaries-source';
+      const asthmaLayerId = 'california-asthma-prevalence-layer';
+      
+      // First ensure the source exists
+      if (!currentMap.getSource(countySourceId)) {
+        console.log(`Source '${countySourceId}' missing, will be added by updateLayers`);
+        // The source will be added by updateLayers below
       }
       
-      // Load data if not already loaded
-      if (!asthmaData) {
-        setIsAsthmaDataLoading(true);
-        loadAsthmaData();
-      } else {
-        // Re-apply data if already loaded but needs refreshing
-        applyAsthmaDataToMap(currentMap, asthmaData);
-      }
+      // After updateLayers runs, ensure the layer is visible
+      setTimeout(() => {
+        if (currentMap.getLayer(asthmaLayerId)) {
+          currentMap.setLayoutProperty(asthmaLayerId, 'visibility', 'visible');
+          console.log('Set asthma layer to visible');
+          
+          // Load data if not already loaded
+          if (!asthmaData) {
+            setIsAsthmaDataLoading(true);
+            loadAsthmaData();
+          } else if (currentMap.getSource(countySourceId)) {
+            // Re-apply data if already loaded but needs refreshing
+            console.log('Re-applying asthma data to map');
+            applyAsthmaDataToMap(currentMap, asthmaData);
+          }
+        }
+      }, 100); // Short delay to ensure updateLayers has completed
     }
 
     updateLayers(currentMap, activeLayerIds);
 
-  }, [activeLayerIds, asthmaData]); 
+  }, [activeLayerIds, asthmaData, loadAsthmaData]); // Added loadAsthmaData as dependency
 
   useEffect(() => {
     if (!map.current) return; 
@@ -680,20 +717,7 @@ const MapView: React.FC<MapViewProps> = ({
     });
   }
 
-  const loadAsthmaData = useCallback(async () => {
-    console.log('Attempting to load asthma data...');
-    setIsAsthmaDataLoading(true);
-    try {
-      const data = await fetchAsthmaData(); // Fetch data using the utility function
-      console.log(`Asthma data loaded successfully for ${Object.keys(data).length} counties.`);
-      setAsthmaData(data);
-    } catch (error) {
-      console.error('Error loading asthma data:', error);
-      setAsthmaData(null); // Set to null on error
-    } finally {
-      setIsAsthmaDataLoading(false);
-    }
-  }, []); // Depends only on fetchAsthmaData import
+  // loadAsthmaData function moved to the top of the component
 
   // Handle clicks on asthma prevalence layer
   useEffect(() => {
