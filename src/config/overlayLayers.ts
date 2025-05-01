@@ -56,7 +56,11 @@ export const overlayLayers: OverlayLayerConfig[] = [
     name: 'California County Boundaries',
     type: 'geojson',
     sourceId: 'california-county-boundaries-source',
-    sourceDefinition: '/California_County_Boundaries_simplified.json',
+    sourceDefinition: {
+      type: 'geojson',
+      data: '/California_County_Boundaries_simplified.json',
+      promoteId: 'COUNTY_NAME'
+    },
     layer: {
       id: 'california-county-boundaries-layer',
       type: 'line',
@@ -121,7 +125,50 @@ export const overlayLayers: OverlayLayerConfig[] = [
     visibleInitially: false,
     initiallyVisible: false,
   },
-
+  {
+    id: 'california-asthma-prevalence',
+    name: 'California Asthma Prevalence',
+    type: 'geojson',
+    sourceId: 'california-county-boundaries-source', // Uses the same source as county boundaries
+    layer: {
+      id: 'california-asthma-prevalence-layer',
+      type: 'fill',
+      source: 'california-county-boundaries-source',
+      paint: {
+        'fill-color': [
+          'step',
+          ['coalesce', ['feature-state', 'asthmaRate'], -1],
+          '#cccccc',   // -1 (no data)
+          0, '#1a9850',   // 0-<7
+          7, '#91cf60',   // 7-<9
+          9, '#d9ef8b',   // 9-<11
+          11, '#fee08b',  // 11-<13
+          13, '#fc8d59',  // 13-<15
+          15, '#d73027'   // 15+
+        ],
+        'fill-opacity': 0.7,
+        'fill-outline-color': 'transparent' // Keep outline transparent
+      },
+      layout: {
+        visibility: 'visible' // Keep it visible by default, controlled by activeLayerIds
+      }
+    },
+    legend: {
+      type: 'gradient',
+      title: 'Asthma Prevalence (%)',
+      items: [
+        { label: '<7%', color: '#1a9850' },
+        { label: '7-9%', color: '#91cf60' },
+        { label: '9-11%', color: '#d9ef8b' },
+        { label: '11-13%', color: '#fee08b' },
+        { label: '13-15%', color: '#fc8d59' },
+        { label: '>15%', color: '#d73027' },
+        { label: 'No data', color: '#cccccc' }
+      ]
+    },
+    visibleInitially: false,
+    initiallyVisible: false,
+  },
  ];
 
  // Helper to get a layer config by ID

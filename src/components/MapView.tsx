@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import maplibregl, { Map, MapMouseEvent, MapGeoJSONFeature, Popup, MapSourceDataEvent, SourceSpecification, LayerSpecification } from 'maplibre-gl'; 
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { mapStyles, defaultMapStyle } from '@/config/mapStyles';
 import { overlayLayers } from '@/config/overlayLayers'; 
 import { useFireData } from '@/contexts/FireDataContext';
+import { fetchAsthmaData } from '@/utils/asthmaData';
 import Legend from './Legend';
 import LoadingIndicator from './LoadingIndicator';
 
@@ -14,6 +15,33 @@ interface MapViewProps {
   minIncidentSize: number; 
   onDataRangeLoad: (min: number, max: number) => void; 
 }
+
+const applyAsthmaDataToMap = (currentMap: Map, data: Record<string, number>) => {
+  // No need to query features first, just iterate through the data
+  // and set state directly using the county name as the ID.
+  for (const countyName in data) {
+    if (Object.prototype.hasOwnProperty.call(data, countyName)) {
+      const rate = data[countyName];
+      // Use countyName directly as the feature ID
+      console.log(`[applyAsthmaDataToMap] Setting state for ${countyName} (ID: ${countyName}) with rate: ${rate}`);
+      currentMap.setFeatureState(
+        { source: 'california-county-boundaries-source', id: countyName }, // <-- Use countyName here
+        { asthmaRate: rate }
+      );
+      // Verify state immediately after setting (optional, for debugging)
+      // const state = currentMap.getFeatureState({ source: 'california-county-boundaries-source', id: countyName });
+      // console.log(`[applyAsthmaDataToMap] State for ${countyName} after set:`, state);
+    }
+  }
+
+  // Optional: Log to confirm state is being set
+  console.log('Applied asthma data using COUNTY_NAME as ID.');
+
+  // It might be good practice to remove state for counties not in the data,
+  // although in this case, the source data likely covers all counties.
+  // You could query features and check if their COUNTY_NAME is NOT in data,
+  // then remove state, but let's keep it simple for now.
+};
 
 const MapView: React.FC<MapViewProps> = ({ 
   activeStyleId, 
@@ -30,9 +58,13 @@ const MapView: React.FC<MapViewProps> = ({
   
   // Track loading states for specific layers
   const [isFirePerimetersLoading, setIsFirePerimetersLoading] = useState(false);
+  const [isAsthmaDataLoading, setIsAsthmaDataLoading] = useState(false);
   
   // Get filtered fire data from context
   const { filteredData, isLoading: isFireDataLoading } = useFireData();
+  
+  // Store the asthma data
+  const [asthmaData, setAsthmaData] = useState<Record<string, number> | null>(null);
 
   // Find the initial style object based on the activeStyleId prop
   const initialStyle = mapStyles.find(style => style.id === activeStyleId)?.style || defaultMapStyle.style;
@@ -58,8 +90,6 @@ const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     if (!map.current) return; 
     const currentMap = map.current;
-
-    // Find the new style
     const newStyle = mapStyles.find(style => style.id === activeStyleId)?.style;
     if (!newStyle) return;
 
@@ -95,6 +125,8 @@ const MapView: React.FC<MapViewProps> = ({
 
     // Check if fire perimeters layer is being activated
     const wasFirePerimetersActive = activeLayerIds.includes('california-fire-perimeters');
+    // Check if asthma layer is being activated
+    const wasAsthmaLayerActive = activeLayerIds.includes('california-asthma-prevalence');
     
     if (!currentMap.isStyleLoaded()) {
         console.log('Base style not loaded yet, delaying layer update.');
@@ -109,10 +141,28 @@ const MapView: React.FC<MapViewProps> = ({
     if (wasFirePerimetersActive && !currentMap.getSource('california-fire-perimeters-source')) {
       setIsFirePerimetersLoading(true);
     }
+    
+    // If asthma layer is being activated, load asthma data
+    if (wasAsthmaLayerActive) {
+      // Set visibility to ensure the layer is displayed
+      if (currentMap.getLayer('california-asthma-prevalence-layer')) {
+        currentMap.setLayoutProperty('california-asthma-prevalence-layer', 'visibility', 'visible');
+        console.log('Set asthma layer to visible');
+      }
+      
+      // Load data if not already loaded
+      if (!asthmaData) {
+        setIsAsthmaDataLoading(true);
+        loadAsthmaData();
+      } else {
+        // Re-apply data if already loaded but needs refreshing
+        applyAsthmaDataToMap(currentMap, asthmaData);
+      }
+    }
 
     updateLayers(currentMap, activeLayerIds);
 
-  }, [activeLayerIds]); 
+  }, [activeLayerIds, asthmaData]); 
 
   useEffect(() => {
     if (!map.current) return; 
@@ -287,6 +337,74 @@ const MapView: React.FC<MapViewProps> = ({
     const currentMap = map.current;
     const fireLayerId = 'us-fire-events-wfigs-layer'; 
 
+    const handleLayerClick = (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
+      if (e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        const properties = feature.properties;
+        const geometry = feature.geometry;
+
+        if (geometry?.type !== 'Point') {
+            console.warn("Clicked feature geometry is not a Point:", geometry);
+            return; 
+        }
+
+        const coordinates = geometry.coordinates.slice() as [number, number]; 
+
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        let popupContent = `<strong>${properties?.IncidentName || 'Unnamed Incident'}</strong><br>`;
+        if (properties?.FireDiscoveryDateTime) {
+          popupContent += `Discovered: ${new Date(properties.FireDiscoveryDateTime).toLocaleString()}<br>`;
+        }
+        if (properties?.IncidentSize !== null && properties?.IncidentSize !== undefined) {
+          popupContent += `Size: ${properties.IncidentSize.toLocaleString()} acres<br>`;
+        }
+        if (properties?.PercentContained !== null && properties?.PercentContained !== undefined) {
+          popupContent += `Contained: ${properties.PercentContained}%<br>`;
+        }
+        if (properties?.POOState) {
+           popupContent += `State: ${properties.POOState}<br>`;
+        }
+
+        new Popup()
+          .setLngLat(coordinates)
+          .setHTML(popupContent)
+          .addTo(currentMap);
+      }
+    };
+
+    const handleMouseEnter = () => {
+        if (currentMap) currentMap.getCanvas().style.cursor = 'pointer';
+    };
+
+    const handleMouseLeave = () => {
+        if (currentMap) currentMap.getCanvas().style.cursor = '';
+    };
+
+    currentMap.on('click', fireLayerId, handleLayerClick);
+    currentMap.on('mouseenter', fireLayerId, handleMouseEnter);
+    currentMap.on('mouseleave', fireLayerId, handleMouseLeave);
+
+    return () => {
+      if (currentMap) {
+        currentMap.off('click', fireLayerId, handleLayerClick);
+        currentMap.off('mouseenter', fireLayerId, handleMouseEnter);
+        currentMap.off('mouseleave', fireLayerId, handleMouseLeave);
+        try {
+           currentMap.getCanvas().style.cursor = '';
+        } catch { /* ignore errors if map canvas is already gone */ }
+      }
+    };
+
+  }, [activeLayerIds]); 
+  
+  useEffect(() => {
+    if (!map.current) return; 
+    const currentMap = map.current;
+    const fireLayerId = 'us-fire-events-wfigs-layer'; 
+
     if (currentMap.getLayer(fireLayerId)) {
         currentMap.setFilter(fireLayerId, [
             ">=", 
@@ -424,6 +542,43 @@ const MapView: React.FC<MapViewProps> = ({
     }
   }, [filteredData, activeLayerIds]);
   
+  // Effect to re-apply asthma data when the layer is active and data is loaded
+  useEffect(() => {
+    const currentMap = map.current;
+    console.log('[Effect asthmaData] Running effect. Has map:', !!currentMap, 'Has asthmaData:', !!asthmaData);
+    if (!currentMap || !asthmaData) return;
+    
+    const sourceId = 'california-county-boundaries-source';
+    
+    const applyData = () => {
+      console.log(`[Effect asthmaData] Source '${sourceId}' loaded, applying asthma data...`);
+      applyAsthmaDataToMap(currentMap, asthmaData);
+      console.log(`[Effect asthmaData] Finished applying asthma data.`);
+    };
+    
+    const handleSourceData = (e: MapSourceDataEvent) => {
+      console.log(`[Effect asthmaData] 'sourcedata' event for sourceId: ${e.sourceId}, isSourceLoaded: ${e.isSourceLoaded}`);
+      if (e.sourceId === sourceId && e.isSourceLoaded) {
+        applyData();
+        // Consider removing listener if data doesn't change: currentMap.off('sourcedata', handleSourceData);
+      }
+    };
+    
+    // Check if source is already loaded when effect runs
+    if (currentMap.isSourceLoaded(sourceId)) {
+      console.log(`[Effect asthmaData] Source '${sourceId}' is already loaded. Applying data directly.`);
+      applyData();
+    } else {
+      console.log(`[Effect asthmaData] Source '${sourceId}' not loaded yet, waiting for 'sourcedata' event.`);
+      currentMap.on('sourcedata', handleSourceData);
+    }
+    
+    // Cleanup listener on unmount or when data changes
+    return () => {
+      currentMap.off('sourcedata', handleSourceData);
+    };
+  }, [asthmaData]); 
+  
   const updateLayers = (currentMap: Map, currentActiveLayerIds: string[]) => {
     overlayLayers.forEach(layerConfig => {
       const layerId = layerConfig.layer.id;
@@ -525,13 +680,87 @@ const MapView: React.FC<MapViewProps> = ({
     });
   }
 
+  const loadAsthmaData = useCallback(async () => {
+    console.log('Attempting to load asthma data...');
+    setIsAsthmaDataLoading(true);
+    try {
+      const data = await fetchAsthmaData(); // Fetch data using the utility function
+      console.log(`Asthma data loaded successfully for ${Object.keys(data).length} counties.`);
+      setAsthmaData(data);
+    } catch (error) {
+      console.error('Error loading asthma data:', error);
+      setAsthmaData(null); // Set to null on error
+    } finally {
+      setIsAsthmaDataLoading(false);
+    }
+  }, []); // Depends only on fetchAsthmaData import
+
+  // Handle clicks on asthma prevalence layer
+  useEffect(() => {
+    if (!map.current) return; 
+    const currentMap = map.current;
+    const asthmaLayerId = 'california-asthma-prevalence-layer'; 
+
+    const handleAsthmaClick = (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+
+      if (feature.layer.id === 'california-asthma-prevalence-layer') {
+        // Get feature state synchronously
+        const stateId = typeof feature.id === 'number' ? feature.id.toString() : feature.id;
+        const featureState = currentMap.getFeatureState({ source: 'california-county-boundaries-source', id: stateId });
+        const asthmaRate = featureState?.asthmaRate;
+        const countyName = feature.properties?.COUNTY_NAME;
+
+        console.log(`Clicked ${countyName}, ID: ${feature.id}, State:`, featureState); // Add log
+
+        // Create popup content
+        const description = `
+          <div class="font-sans">
+            <strong class="block text-lg">${countyName}</strong>
+            <span class="block text-sm text-gray-600">Asthma Rate: ${asthmaRate !== undefined ? `${asthmaRate}%` : 'No data'}</span>
+          </div>
+        `;
+
+        // Create and add popup
+        new Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(description)
+          .addTo(currentMap);
+      }
+    };
+
+    const handleMouseEnter = () => {
+      if (currentMap) currentMap.getCanvas().style.cursor = 'pointer';
+    };
+
+    const handleMouseLeave = () => {
+      if (currentMap) currentMap.getCanvas().style.cursor = '';
+    };
+
+    currentMap.on('click', asthmaLayerId, handleAsthmaClick);
+    currentMap.on('mouseenter', asthmaLayerId, handleMouseEnter);
+    currentMap.on('mouseleave', asthmaLayerId, handleMouseLeave);
+
+    return () => {
+      if (currentMap) {
+        currentMap.off('click', asthmaLayerId, handleAsthmaClick);
+        currentMap.off('mouseenter', asthmaLayerId, handleMouseEnter);
+        currentMap.off('mouseleave', asthmaLayerId, handleMouseLeave);
+        try {
+          currentMap.getCanvas().style.cursor = '';
+        } catch { /* ignore errors if map canvas is already gone */ }
+      }
+    };
+  }, []);
+
   return (
     <>
       <div ref={mapContainer} className="w-full h-full absolute top-0 left-0" />
       <Legend layers={overlayLayers} activeLayerIds={activeLayerIds} />
       <LoadingIndicator 
-        isLoading={isFirePerimetersLoading || isFireDataLoading} 
-        message="Loading California fire perimeters..." 
+        isLoading={isFirePerimetersLoading || isFireDataLoading || isAsthmaDataLoading} 
+        message={isAsthmaDataLoading ? "Loading asthma data..." : "Loading California fire perimeters..."} 
       />
     </>
   );

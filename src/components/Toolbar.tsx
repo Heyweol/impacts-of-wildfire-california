@@ -27,6 +27,9 @@ const FireIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-
 // Chart/Analysis Icon
 const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>;
 
+// Health/Lungs Icon for Asthma data
+const LungsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v7.5M9 12.75V19.5m0-6.75l-3-3m3 3l3-3m-6 3V4.5m6 9v-6.75" /></svg>;
+
 const Toolbar: React.FC<ToolbarProps> = ({ 
   activeStyleId, 
   onStyleChange,
@@ -37,7 +40,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
   const [isLayerSwitcherVisible, setIsLayerSwitcherVisible] = useState(false); // State for LayerSwitcher
   const [isFireLayerActive, setIsFireLayerActive] = useState(false); // State for Fire layer
-  const buttons = Array(4).fill(null); // Create 4 buttons now
+  const [isAsthmaLayerActive, setIsAsthmaLayerActive] = useState(false); // State for Asthma layer
+  const buttons = Array(5).fill(null); // Create 5 buttons now
 
   return (
     <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10">
@@ -46,7 +50,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
           const isBasemapButton = index === 0;
           const isLayersButton = index === 1;
           const isFireButton = index === 2;
-          const isAnalysisButton = index === 3;
+          const isAsthmaButton = index === 3;
+          const isAnalysisButton = index === 4;
           // Assign Icons based on index
           let Icon = PlaceholderIcon;
           let label = `Tool ${index + 1}`;
@@ -64,6 +69,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
               Icon = FireIcon;
               label = "Fire!";
               isActive = isFireLayerActive;
+          } else if (isAsthmaButton) {
+              Icon = LungsIcon;
+              label = "Asthma Data";
+              isActive = isAsthmaLayerActive;
           } else if (isAnalysisButton) {
               Icon = ChartIcon;
               label = "Analysis";
@@ -97,6 +106,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   // If the fire layer is in activeLayerIds and we're turning it off, remove it
                   else if (!newState && activeLayerIds.includes('california-fire-perimeters')) {
                     onLayerToggle('california-fire-perimeters');
+                  }
+                } else if (isAsthmaButton) {
+                  // Toggle the asthma layer
+                  const newState = !isAsthmaLayerActive;
+                  setIsAsthmaLayerActive(newState);
+                  // If the asthma layer is not already in activeLayerIds, add it
+                  if (newState && !activeLayerIds.includes('california-asthma-prevalence')) {
+                    onLayerToggle('california-asthma-prevalence');
+                  } 
+                  // If the asthma layer is in activeLayerIds and we're turning it off, remove it
+                  else if (!newState && activeLayerIds.includes('california-asthma-prevalence')) {
+                    onLayerToggle('california-asthma-prevalence');
                   }
                 } else if (isAnalysisButton) {
                   // Close other panels

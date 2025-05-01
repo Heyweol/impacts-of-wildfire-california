@@ -199,7 +199,45 @@
   - Enhance the UI with more interactive controls
   - Implement spatio-temporal analysis features
 
-## Stage 7: Fire Data Analysis System
+## Stage 7: Asthma Prevalence Data Integration
+
+- **Timestamp:** 2025-05-01
+- **Features Added:**
+  - **Asthma Prevalence Choropleth Layer:**
+    - Integrated county-level asthma prevalence data from 2017-2018 survey
+    - Added choropleth map layer to visualize asthma prevalence rates by county
+    - Implemented six-color gradient scale (green to red) to represent rates:
+      - < 7%: Dark green
+      - 7-9%: Light green
+      - 9-11%: Yellow-green
+      - 11-13%: Yellow
+      - 13-15%: Orange
+      - > 15%: Red
+    - Used same GeoJSON source as county boundaries but with fill styling
+    - Implemented feature-state to associate asthma rates with county geometries
+  - **Asthma Data Processing:**
+    - Created new utility function `fetchAsthmaData()` in `src/utils/asthmaData.ts`
+    - Parses CSV data from `public/asthma-prevalence-18-23.csv`
+    - Extracts prevalence rates for "All ages" in "Total population" strata
+    - Maps county names to prevalence percentage values
+  - **Interactive Features:**
+    - Added click interaction to display county name and asthma prevalence rate
+    - Implemented popup with formatted information
+    - Added legend with color scale and percentage ranges
+    - Updated loading indicator to show different message when loading asthma data
+  - **Technical Implementation:**
+    - Used MapLibre's feature-state API to join data to GeoJSON features
+    - Tracked data loading state to provide user feedback
+    - Added event listeners to detect when county boundary source is loaded
+    - Fixed TypeScript errors related to Map types and feature-state expressions
+- **Next Steps:**
+  - Integrate more recent asthma prevalence data if available
+  - Add correlation analysis between fire events and asthma rates
+  - Implement temporal view to track changes in asthma rates over time
+  - Add more health indicators related to air quality and respiratory conditions
+  - Enhance UI with filtering options for health data
+
+## Stage 8: Fire Data Analysis System
 
 - **Timestamp:** 2025-05-01
 - **Features Added:**

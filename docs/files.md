@@ -11,7 +11,9 @@ fire_web/
 ├── public/
 │   ├── next.svg              # Next.js logo (can be removed)
 │   ├── vercel.svg            # Vercel logo (can be removed)
-│   └── ...                   # Static assets go here
+│   ├── asthma-prevalence-18-23.csv  # California asthma prevalence data by county
+│   ├── California_County_Boundaries_simplified.json  # GeoJSON for California counties
+│   └── ...                   # Other static assets
 ├── src/
 │   ├── app/
 │   │   ├── favicon.ico       # Browser tab icon
@@ -34,6 +36,9 @@ fire_web/
 │   │   └── overlayLayers.ts  # Defines available overlay layers
 │   ├── contexts/
 │   │   └── FireDataContext.tsx # Context for managing fire perimeter data across components, with filtering and caching
+│   ├── utils/
+│   │   ├── asthmaData.ts       # Utility functions for processing asthma prevalence data
+│   │   └── ...                 # Other utility files
 │   └── ...                   # Other source files
 ├── .eslintrc.json            # ESLint configuration
 ├── .gitignore                # Files/folders ignored by Git
