@@ -47,7 +47,7 @@ fire_web/
 *   **`src/app/layout.tsx`**: The root layout that wraps all pages. Defines the basic HTML structure and includes global styles.
 *   **`src/components/MapWrapper.tsx`**: A client component (`'use client'`) responsible for dynamically importing `MapView` with SSR disabled (`next/dynamic`). This is necessary because MapLibre interacts with browser-specific APIs.
 *   **`src/components/MapView.tsx`**: The core MapLibre map component. Initializes the map, manages base style changes, adds/removes overlay layers, handles popups, and applies filters.
-*   **`next.config.mjs`**: Configuration for Next.js. It's set up for static export (`output: 'export'`), includes the correct `basePath` and `assetPrefix` for GitHub Pages deployment (`/impacts-of-wildfire-california`), and disables Next.js image optimization (`images: { unoptimized: true }`) which is necessary for static sites.
+*   **`next.config.mjs`**: Configuration for Next.js. Contains standard settings suitable for Vercel deployment.
 *   **`src/components/Toolbar.tsx`**: A client component (`'use client'`) that displays a floating vertical toolbar on the left side of the screen, intended to hold action buttons for different functionalities.
 *   **`src/components/BasemapSwitcher.tsx`**: A UI component, typically shown adjacent to the Toolbar, allowing users to select different base map styles.
 *   **`src/components/LayerSwitcher.tsx`**: A UI component, typically shown adjacent to the Toolbar, allowing users to toggle the visibility of overlay layers.
@@ -72,4 +72,4 @@ fire_web/
 *   **`src/app/globals.css`**: Contains Tailwind CSS directives (`@tailwind base`, `@tailwind components`, `@tailwind utilities`).
 *   **`tailwind.config.ts`**: Configuration file for Tailwind CSS.
 *   **`postcss.config.mjs`**: Configures PostCSS, primarily used here to enable the Tailwind CSS v4 plugin (`@tailwindcss/postcss`).
-*   **`package.json`**: Lists project dependencies and scripts (`dev`, `build`, `start`, `lint`).
+*   **`package.json`**: Lists project dependencies and scripts (`dev`, `build`, `start`, `lint`). Note: Contains a `deploy` script and `gh-pages` dependency which were for GitHub Pages deployment and are no longer relevant for Vercel.

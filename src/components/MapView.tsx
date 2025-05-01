@@ -164,47 +164,79 @@ const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     if (!map.current) return;
     const currentMap = map.current;
-    const fireSourceId = 'us-fire-events-wfigs-source'; 
+    const fireSourceId = 'us-fire-events-wfigs-source';
+    const fireLayerActive = activeLayerIds.includes('us-fire-events-wfigs');
+    let isListenerAttached = false;
 
-    const handleDataLoad = (e: MapSourceDataEvent) => {
-      if (e.sourceId === fireSourceId && e.isSourceLoaded) {
-        const features = currentMap.querySourceFeatures(fireSourceId);
-        
-        let minSize = Infinity;
-        let maxSize = -Infinity;
-        let hasFeatures = false;
-
-        features.forEach(feature => {
-          const size = feature.properties?.IncidentSize;
-          if (typeof size === 'number' && !isNaN(size)) {
-            hasFeatures = true;
-            minSize = Math.min(minSize, size);
-            maxSize = Math.max(maxSize, size);
-          }
-        });
-
-        if (hasFeatures) {
-            console.log(`Calculated IncidentSize range: ${minSize} - ${maxSize}`);
-            onDataRangeLoad(minSize, maxSize);
-        } else {
-            console.log('No valid IncidentSize features found to calculate range.');
-            onDataRangeLoad(0, 0); 
+    const calculateAndSetRange = () => {
+      if (!currentMap) return;
+      const source = currentMap.getSource(fireSourceId);
+      if (!source) {
+        onDataRangeLoad(0, 0);
+        return;
+      }
+      // Ensure source is loaded before querying features
+      if (!currentMap.isSourceLoaded(fireSourceId)) {
+          return; 
+      }
+      const features = currentMap.querySourceFeatures(fireSourceId);
+      let minSize = Infinity;
+      let maxSize = -Infinity;
+      let hasFeatures = false;
+      features.forEach(feature => {
+        const size = feature.properties?.IncidentSize;
+        if (typeof size === 'number' && !isNaN(size)) {
+          hasFeatures = true;
+          minSize = Math.min(minSize, size);
+          maxSize = Math.max(maxSize, size);
         }
-
-        currentMap.off('data', handleDataLoad);
+      });
+      if (hasFeatures) {
+        onDataRangeLoad(minSize, maxSize);
+      } else {
+        onDataRangeLoad(0, 0);
       }
     };
 
-    currentMap.on('data', handleDataLoad);
+    // Renamed handler to reflect the event type
+    const handleSourceData = (e: MapSourceDataEvent) => {
+      // Check if the event is for our specific source and if it's now loaded
+      if (e.sourceId === fireSourceId && e.isSourceLoaded) {
+        calculateAndSetRange();
+        // Detach listener after successful calculation
+        if (currentMap && isListenerAttached) {
+          currentMap.off('sourcedata', handleSourceData);
+          isListenerAttached = false;
+        }
+      }
+    };
 
+    if (fireLayerActive) {
+      const source = currentMap.getSource(fireSourceId);
+      if (source && currentMap.isSourceLoaded(fireSourceId)) {
+        calculateAndSetRange(); // Calculate immediately
+      } else {
+        // Source exists but not loaded, or doesn't exist yet.
+        // Attach listener for 'sourcedata'
+        currentMap.on('sourcedata', handleSourceData);
+        isListenerAttached = true;
+      }
+    } else {
+      // Ensure listener is removed if layer becomes inactive
+       if (currentMap && isListenerAttached) {
+            currentMap.off('sourcedata', handleSourceData);
+            isListenerAttached = false; // Update tracker
+       }
+    }
+
+    // Cleanup function
     return () => {
-      if (currentMap) {
-        try {
-            currentMap.off('data', handleDataLoad);
-        } catch { /* ignore errors if map/listener gone */ }
+      if (currentMap && isListenerAttached) {
+        currentMap.off('sourcedata', handleSourceData);
       }
     };
-  }, [onDataRangeLoad]); 
+
+  }, [activeLayerIds, onDataRangeLoad]);
 
   const updateLayers = (currentMap: Map, currentActiveLayerIds: string[]) => {
     overlayLayers.forEach(layerConfig => {

@@ -31,9 +31,10 @@ export default function Home() {
 
   // Wrap callback in useCallback to stabilize its reference
   const handleDataRangeLoad = useCallback((min: number, max: number) => {
-    console.log(`page.tsx received data range: ${min} - ${max}`);
     setDataMinSize(min);
     setDataMaxSize(max);
+    // Optional: Reset the filter value when new data range loads?
+    // setMinIncidentSize(min); // Uncomment if you want slider to reset to min
   }, []); // Empty dependency array means this function is created once
 
   const isFireLayerActive = activeLayerIds.includes('us-fire-events-wfigs');

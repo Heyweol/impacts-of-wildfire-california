@@ -130,18 +130,12 @@
 - **Timestamp:** 2025-04-23
 - **Activities:**
   - **ESLint & TypeScript Bug Fixes:** Resolved several issues in `BasemapSwitcher.tsx`, `Legend.tsx`, and `MapView.tsx` including unused variables/imports, incorrect type usage (replaced `any` with specific types like `MapSourceDataEvent`, `SourceSpecification`, `LayerSpecification`), added conditional rendering for potentially undefined props (`legendUrl`), fixed missing `useEffect` dependencies, and installed `@types/geojson`.
-  - **GitHub Pages Deployment Configuration:**
-    - Installed `gh-pages` development dependency (`pnpm add -D gh-pages`).
-    - Created `next.config.mjs` and configured it for static export:
-      - Set `output: 'export'`.
-      - Set `basePath: '/impacts-of-wildfire-california'`.
-      - Set `assetPrefix: '/impacts-of-wildfire-california/'`.
-      - Set `images: { unoptimized: true }` (required for static export).
-    - Added a `deploy` script to `package.json`: `"deploy": "next build && gh-pages -d out"`.
-    - Updated `docs/files.md` and `docs/development_stage.md`.
+  - **Deployment Configuration:**
+    - Initially configured for GitHub Pages static export (added `gh-pages`, modified `next.config.mjs` with `output: 'export'`, `basePath`, `assetPrefix`, `images.unoptimized`, added `deploy` script to `package.json`).
+    - **Reverted configuration to support Vercel deployment**: Removed `output`, `basePath`, `assetPrefix`, and `images.unoptimized` from `next.config.mjs`.
+    - Updated documentation (`docs/files.md`, `docs/development_stage.md`) to reflect the Vercel configuration. (Note: `gh-pages` dependency and `deploy` script remain in `package.json` but are unused for Vercel).
 - **Next Steps:**
-  - Run the deployment script.
-  - Configure GitHub repository settings to serve from the `gh-pages` branch.
+  - Deploy to Vercel (e.g., by connecting the GitHub repository to Vercel).
   - Add more overlay layers and functionality.
 
 ## Next Steps
