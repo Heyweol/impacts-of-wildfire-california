@@ -180,7 +180,7 @@ const MapView: React.FC<MapViewProps> = ({
       }
     };
 
-  }, []); 
+  }, [activeLayerIds]); 
   
   // Handle clicks on California Fire Perimeters layer
   useEffect(() => {

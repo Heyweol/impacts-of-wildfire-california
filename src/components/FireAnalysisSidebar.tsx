@@ -9,6 +9,37 @@ interface FireAnalysisSidebarProps {
 }
 
 const FireAnalysisSidebar: React.FC<FireAnalysisSidebarProps> = ({ isOpen, onClose }) => {
+  // Function to calculate the max fire size from filtered data
+  const getMaxFireSize = () => {
+    if (!filteredData || !filteredData.features || filteredData.features.length === 0) {
+      return 0;
+    }
+    
+    let maxSize = 0;
+    filteredData.features.forEach(feature => {
+      const acres = feature.properties?.GIS_ACRES || 0;
+      if (acres > maxSize) {
+        maxSize = acres;
+      }
+    });
+    
+    return Math.round(maxSize);
+  };
+  // Function to get dominant (most common) agency
+  const getDominantAgency = () => {
+    if (!Object.keys(agencyCounts).length) return 'None';
+    return Object.entries(agencyCounts)
+      .sort((a, b) => b[1] - a[1])[0][0];
+  };
+  
+  // Function to get dominant (most common) cause
+  const getDominantCause = () => {
+    if (!Object.keys(causeCounts).length) return 'Unknown';
+    const causeId = Object.entries(causeCounts)
+      .sort((a, b) => b[1] - a[1])[0][0];
+    return causeCodes[parseInt(causeId)] || 'Unknown';
+  };
+  
   const {
     isLoading,
     error,
@@ -20,11 +51,10 @@ const FireAnalysisSidebar: React.FC<FireAnalysisSidebarProps> = ({ isOpen, onClo
     availableYears,
     availableCauses,
     availableAgencies,
-    minPossibleAcres,
-    maxPossibleAcres,
     filters,
     setFilters,
     resetFilters,
+    filteredData,
   } = useFireData();
 
   // Local state for filter inputs before applying
@@ -82,15 +112,15 @@ const FireAnalysisSidebar: React.FC<FireAnalysisSidebarProps> = ({ isOpen, onClo
   // Apply filters
   const applyFilters = () => {
     const selectedYears = Object.entries(yearSelections)
-      .filter(([_, selected]) => selected)
+      .filter(([, selected]) => selected)
       .map(([year]) => parseInt(year));
     
     const selectedCauses = Object.entries(causeSelections)
-      .filter(([_, selected]) => selected)
+      .filter(([, selected]) => selected)
       .map(([cause]) => parseInt(cause));
     
     const selectedAgencies = Object.entries(agencySelections)
-      .filter(([_, selected]) => selected)
+      .filter(([, selected]) => selected)
       .map(([agency]) => agency);
     
     setFilters({
@@ -165,7 +195,7 @@ const FireAnalysisSidebar: React.FC<FireAnalysisSidebarProps> = ({ isOpen, onClo
             {/* Summary Statistics */}
             <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
               <h3 className="text-lg font-medium mb-2">Summary</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Fires</p>
                   <p className="text-xl font-bold">{totalFires.toLocaleString()}</p>
@@ -173,6 +203,20 @@ const FireAnalysisSidebar: React.FC<FireAnalysisSidebarProps> = ({ isOpen, onClo
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Acres</p>
                   <p className="text-xl font-bold">{Math.round(totalAcres).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Avg. Fire Size</p>
+                  <p className="text-xl font-bold">
+                    {totalFires > 0 
+                      ? Math.round(totalAcres / totalFires).toLocaleString() 
+                      : '0'} acres
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Largest Fire</p>
+                  <p className="text-xl font-bold">
+                    {getMaxFireSize().toLocaleString()} acres
+                  </p>
                 </div>
               </div>
               
@@ -220,6 +264,31 @@ const FireAnalysisSidebar: React.FC<FireAnalysisSidebarProps> = ({ isOpen, onClo
                 </div>
               )}
               
+              {/* Additional Statistics */}
+              <div className="mt-4 border-t pt-3">
+                <h4 className="text-sm font-medium mb-2">Additional Insights</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Most Common Cause</p>
+                    <p className="font-medium">{getDominantCause()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Primary Agency</p>
+                    <p className="font-medium">{getDominantAgency()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Time Period</p>
+                    <p className="font-medium">
+                      {Math.min(...availableYears)} - {Math.max(...availableYears)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Selected Years</p>
+                    <p className="font-medium">{filters.years.length} of {availableYears.length}</p>
+                  </div>
+                </div>
+              </div>
+              
               {/* Simple pie/bar for causes */}
               {Object.keys(causeCounts).length > 0 && (
                 <div className="mt-4">
@@ -261,17 +330,35 @@ const FireAnalysisSidebar: React.FC<FireAnalysisSidebarProps> = ({ isOpen, onClo
                 <div className="flex space-x-2">
                   <button 
                     onClick={applyFilters}
-                    className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded"
+                    className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded flex items-center"
+                    title="Apply filters to the map"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
                     Apply
                   </button>
                   <button 
                     onClick={handleResetFilters}
-                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-sm rounded"
+                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-sm rounded flex items-center"
+                    title="Reset all filters to default"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                    </svg>
                     Reset
                   </button>
                 </div>
+              </div>
+              
+              {/* Filter status - shows number of results */}
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-3 bg-blue-50 dark:bg-blue-900/10 p-2 rounded">
+                <p className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
+                  </svg>
+                  Showing <span className="font-bold mx-1">{totalFires}</span> fires covering <span className="font-bold mx-1">{Math.round(totalAcres).toLocaleString()}</span> acres
+                </p>
               </div>
 
               {/* Year Filter */}

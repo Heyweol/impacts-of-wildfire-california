@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Feature, FeatureCollection, Geometry } from 'geojson';
 
 // Define the fire data properties based on the ArcGIS API response
@@ -143,7 +143,7 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
   });
   
   // Function to fetch fire data
-  const fetchFireData = async (): Promise<FireFeatureCollection> => {
+  const fetchFireData = useCallback(async (): Promise<FireFeatureCollection> => {
     const url = 'https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Historic_Fire_Perimeters/FeatureServer/0/query';
     
     // Parameters for the query
@@ -179,10 +179,10 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
       }
       throw error;
     }
-  };
+  }, []);
   
   // Function to refresh data
-  const refreshData = async (): Promise<void> => {
+  const refreshData = useCallback(async (): Promise<void> => {
     // If already loading, don't start another request
     if (isLoading) return;
     
@@ -207,7 +207,7 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, fetchFireData]);
   
   // Function to reset filters to default
   const resetFilters = (): void => {
@@ -218,7 +218,7 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
   // Effect to fetch initial data
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [refreshData]);
   
   // Effect to compute statistics and filter options when raw data changes
   useEffect(() => {

@@ -26,10 +26,14 @@ fire_web/
 │   │   ├── LayerSwitcher.tsx  # UI component for toggling the visibility of overlay layers
 │   │   ├── Legend.tsx        # UI component for displaying legends of active overlay layers
 │   │   ├── LoadingIndicator.tsx # A UI component that displays a centered loading spinner with a customizable message. Used to provide visual feedback when data-intensive layers (like California fire perimeters) are being loaded.
+│   │   ├── FilterSlider.tsx   # A reusable slider component for filtering numeric values (used for fire size filtering)
+│   │   ├── FireAnalysisSidebar.tsx # A comprehensive UI component for fire data analysis, including filtering, visualization, and statistics
 │   │   └── ...               # Other components
 │   ├── config/
 │   │   ├── mapStyles.ts      # Defines available basemap styles
 │   │   └── overlayLayers.ts  # Defines available overlay layers
+│   ├── contexts/
+│   │   └── FireDataContext.tsx # Context for managing fire perimeter data across components, with filtering and caching
 │   └── ...                   # Other source files
 ├── .eslintrc.json            # ESLint configuration
 ├── .gitignore                # Files/folders ignored by Git
@@ -54,6 +58,8 @@ fire_web/
 *   **`src/components/BasemapSwitcher.tsx`**: A UI component, typically shown adjacent to the Toolbar, allowing users to select different base map styles.
 *   **`src/components/LayerSwitcher.tsx`**: A UI component, typically shown adjacent to the Toolbar, allowing users to toggle the visibility of overlay layers.
 *   **`src/components/Legend.tsx`**: A UI component, typically positioned at the bottom-right, that displays legends for currently active overlay layers. Supports both image-based legends (via `legendUrl`) and gradient-type legends with color swatches (via `legend` configuration).
+*   **`src/components/FireAnalysisSidebar.tsx`**: A sophisticated sidebar component that provides comprehensive fire data analysis tools. Features include statistical summaries (total fires, acres, average size), interactive visualizations (bar charts for years, horizontal bars for causes), and multi-criteria filtering (by year, size, cause, agency). Opens when the user clicks the Analysis button in the toolbar.
+*   **`src/contexts/FireDataContext.tsx`**: A React Context provider that centralizes fire data management. It fetches California fire perimeter data from the ArcGIS REST API, caches it client-side, provides filtering capabilities, and calculates statistics. This context allows components to access and manipulate the same data without redundant API calls.
 *   **`src/config/mapStyles.ts`**: Defines available basemap styles (name, ID, MapLibre style object/URL).
 *   **`src/config/overlayLayers.ts`**: 
     **Description:** Defines the configuration for various map overlay layers that can be toggled by the user. Each layer object specifies its ID, display name, type (e.g., 'tile', 'wms', 'geojson', 'vector', 'raster'), source ID, source definition (URL or MapLibre SourceSpecification), MapLibre layer specification for styling, initial visibility, and optional legend info.
