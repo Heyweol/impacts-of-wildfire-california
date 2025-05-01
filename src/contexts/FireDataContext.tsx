@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { Feature, FeatureCollection, Geometry } from 'geojson';
 
 // Define the fire data properties based on the ArcGIS API response
@@ -215,9 +215,15 @@ export const FireDataProvider: React.FC<FireDataProviderProps> = ({ children }) 
     setFiltersApplied(true); // Ensure map updates
   };
   
-  // Effect to fetch initial data
+  // Use a ref to track if initial fetch has happened
+  const initialFetchDone = useRef(false);
+  
+  // Effect to fetch initial data only once
   useEffect(() => {
-    refreshData();
+    if (!initialFetchDone.current) {
+      refreshData();
+      initialFetchDone.current = true;
+    }
   }, [refreshData]);
   
   // Effect to compute statistics and filter options when raw data changes
