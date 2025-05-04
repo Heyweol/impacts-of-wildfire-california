@@ -4,6 +4,12 @@ import React, { useState } from 'react';
 import BasemapSwitcher from './BasemapSwitcher';
 import LayerSwitcher from './LayerSwitcher';
 import TemperatureYearSelector from './TemperatureYearSelector';
+// Import icons from react-icons
+import { FaGlobe, FaFire, FaChartBar, FaInfoCircle } from 'react-icons/fa';
+import { MdLayers } from 'react-icons/md';
+import { RiLungsFill } from 'react-icons/ri';
+import { WiThermometer } from 'react-icons/wi';
+// import { BsExclamationCircle } from 'react-icons/bs';
 
 // Define props for the Toolbar
 interface ToolbarProps {
@@ -18,23 +24,22 @@ interface ToolbarProps {
   onTemperatureYearChange?: (year: number | null) => void;
 }
 
-// Placeholder icons (replace with actual icons later)
-const PlaceholderIcon = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>; 
+// Placeholder icon using react-icons
+// const PlaceholderIcon = () => <BsExclamationCircle className="w-6 h-6" />; 
 // Globe Icon
-const GlobeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h8a2 2 0 002-2v-1a2 2 0 012-2h1.945M12 4.5v6.989l-2.256 1.008M12 4.5a9 9 0 11-7.929 11.515M12 4.5v6.989l2.256 1.008m4.83 4.491l.949 1.5M4.22 20.515l.949-1.5M12 21.75c-2.676 0-5.216-.584-7.499-1.632" /></svg>;
+const GlobeIcon = () => <FaGlobe className="h-6 w-6" />;
 // Layers Icon
-const LayersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>;
+const LayersIcon = () => <MdLayers className="h-6 w-6" />;
 // Fire Icon
-const FireIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 16.121A3 3 0 1012.015 11.1c.248.6.4 1.2.4 1.9a2.986 2.986 0 01-1.425 2.56" /></svg>;
-
+const FireIcon = () => <FaFire className="h-6 w-6" />;
 // Chart/Analysis Icon
-const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>;
-
+const ChartIcon = () => <FaChartBar className="h-6 w-6" />;
 // Health/Lungs Icon for Asthma data
-const LungsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75l3 3m0 0l3-3m-3 3v7.5M9 12.75V19.5m0-6.75l-3-3m3 3l3-3m-6 3V4.5m6 9v-6.75" /></svg>;
-
+const LungsIcon = () => <RiLungsFill className="h-6 w-6" />;
 // Temperature Icon for Temperature Anomaly data
-const TemperatureIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 004.5 9.375v6.75A1.125 1.125 0 005.625 17.25h1.5a3.375 3.375 0 003.375-3.375V14.25m0 0v-3.375a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 004.5 9.375v6.75A1.125 1.125 0 005.625 17.25h1.5a3.375 3.375 0 003.375-3.375v-3" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" /></svg>;
+const TemperatureIcon = () => <WiThermometer className="h-6 w-6" style={{ fontSize: '1.75rem' }} />;
+// Info Icon
+const InfoIcon = () => <FaInfoCircle className="h-6 w-6" />;
 
 const Toolbar: React.FC<ToolbarProps> = ({ 
   activeStyleId, 
@@ -44,72 +49,68 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onOpenAnalysis, // Receive analysis sidebar handler
   onTemperatureYearChange // Temperature year change handler
 }) => {
+  // State for visibility toggles
   const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
-  const [isLayerSwitcherVisible, setIsLayerSwitcherVisible] = useState(false); // State for LayerSwitcher
-  const [isFireLayerActive, setIsFireLayerActive] = useState(false); // State for Fire layer
-  const [isAsthmaLayerActive, setIsAsthmaLayerActive] = useState(false); // State for Asthma layer
-  const [isTemperatureLayerActive, setIsTemperatureLayerActive] = useState(false); // State for Temperature layer
-  const [isTemperatureYearSelectorVisible, setIsTemperatureYearSelectorVisible] = useState(false); // State for Temperature year selector
-  const [selectedTemperatureYear, setSelectedTemperatureYear] = useState<number | null>(null); // null means average
-  const buttons = Array(6).fill(null); // Create 6 buttons now (added temperature button)
+  const [isLayerSwitcherVisible, setIsLayerSwitcherVisible] = useState(false);
+  const [isFireLayerActive, setIsFireLayerActive] = useState(false);
+  const [isAsthmaLayerActive, setIsAsthmaLayerActive] = useState(false);
+  const [isTemperatureLayerActive, setIsTemperatureLayerActive] = useState(false);
+  const [isTemperatureYearSelectorVisible, setIsTemperatureYearSelectorVisible] = useState(false);
+  const [selectedTemperatureYear, setSelectedTemperatureYear] = useState<number | null>(null);
+  // Add info modal visibility state
+  const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
+
+  // When toolbar is initially rendered, update the layer button active states
+  // based on activeLayerIds
+  React.useEffect(() => {
+    setIsFireLayerActive(activeLayerIds.includes('california-fire-perimeters'));
+    setIsAsthmaLayerActive(activeLayerIds.includes('california-asthma-prevalence'));
+    setIsTemperatureLayerActive(activeLayerIds.includes('california-temperature-anomaly'));
+  }, [activeLayerIds]);
+
+  // Define the toolbar buttons
+  const toolbarButtons = [
+    { name: 'basemap', tooltip: 'Change basemap', Icon: GlobeIcon, active: isSwitcherVisible },
+    { name: 'layers', tooltip: 'Layer manager', Icon: LayersIcon, active: isLayerSwitcherVisible },
+    { name: 'fire', tooltip: 'Toggle wildfire perimeters', Icon: FireIcon, active: isFireLayerActive },
+    { name: 'asthma', tooltip: 'Toggle asthma prevalence', Icon: LungsIcon, active: isAsthmaLayerActive },
+    { name: 'temperature', tooltip: 'Toggle temperature anomaly', Icon: TemperatureIcon, active: isTemperatureLayerActive },
+    { name: 'analysis', tooltip: 'Open analysis tools', Icon: ChartIcon, active: false }
+  ];
 
   return (
-    <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10">
-      <div className="relative p-2 bg-white dark:bg-zinc-800 shadow-lg rounded-md flex flex-col space-y-2">
-        {buttons.map((_, index) => {
-          const isBasemapButton = index === 0;
-          const isLayersButton = index === 1;
-          const isFireButton = index === 2;
-          const isAsthmaButton = index === 3;
-          const isTemperatureButton = index === 4;
-          const isAnalysisButton = index === 5;
-          // Assign Icons based on index
-          let Icon = PlaceholderIcon;
-          let label = `Tool ${index + 1}`;
-          let isActive = false;
-
-          if (isBasemapButton) {
-              Icon = GlobeIcon;
-              label = "Basemaps";
-              isActive = isSwitcherVisible;
-          } else if (isLayersButton) {
-              Icon = LayersIcon;
-              label = "Layers";
-              isActive = isLayerSwitcherVisible;
-          } else if (isFireButton) {
-              Icon = FireIcon;
-              label = "Fire!";
-              isActive = isFireLayerActive;
-          } else if (isAsthmaButton) {
-              Icon = LungsIcon;
-              label = "Asthma Data";
-              isActive = isAsthmaLayerActive;
-          } else if (isTemperatureButton) {
-              Icon = TemperatureIcon;
-              label = "Temperature";
-              isActive = isTemperatureLayerActive || isTemperatureYearSelectorVisible;
-          } else if (isAnalysisButton) {
-              Icon = ChartIcon;
-              label = "Analysis";
-              isActive = false;
-          }
-
-          // Conditional styling for active state
-          const activeClasses = isActive ? 'bg-blue-100 dark:bg-blue-900' : '';
-
+    <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10 flex flex-col space-y-2">
+      <div className="flex flex-col space-y-2 bg-white bg-opacity-90 dark:bg-gray-700 dark:bg-opacity-90 p-1 rounded-lg shadow-lg">
+        {toolbarButtons.map(({ name, tooltip, Icon, active }) => {
+          // ID selectors for specific buttons
+          const isBasemapButton = name === 'basemap';
+          const isLayerButton = name === 'layers';
+          const isFireButton = name === 'fire';
+          const isAsthmaButton = name === 'asthma';
+          const isTemperatureButton = name === 'temperature';
+          const isAnalysisButton = name === 'analysis';
+          
           return (
-            <button
-              key={index}
-              className={`p-2 rounded ${activeClasses} hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              aria-label={label}
-              title={label}
+            <button 
+              key={name} 
+              title={tooltip}
+              aria-label={tooltip}
+              className={`p-2 rounded-md transition-all ${
+                active 
+                  ? 'bg-blue-500 text-white' 
+                  : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+              }`}
               onClick={() => {
                 if (isBasemapButton) {
+                  // Toggle the basemap switcher visibility
                   setIsSwitcherVisible(!isSwitcherVisible);
+                  // Close other panels
                   setIsLayerSwitcherVisible(false);
                   setIsTemperatureYearSelectorVisible(false);
-                } else if (isLayersButton) {
+                } else if (isLayerButton) {
+                  // Toggle the layer switcher visibility
                   setIsLayerSwitcherVisible(!isLayerSwitcherVisible);
+                  // Close other panels
                   setIsSwitcherVisible(false);
                   setIsTemperatureYearSelectorVisible(false);
                 } else if (isFireButton) {
@@ -169,6 +170,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
           );
         })}
       </div>
+      
+      {/* Info button at the bottom */}
+      <div className="bg-white bg-opacity-90 dark:bg-gray-700 dark:bg-opacity-90 p-1 rounded-lg shadow-lg">
+        <button
+          title="Information"
+          aria-label="Information"
+          className={`p-2 rounded-md transition-all ${
+            isInfoModalVisible 
+              ? 'bg-blue-500 text-white' 
+              : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+          }`}
+          onClick={() => setIsInfoModalVisible(!isInfoModalVisible)}
+        >
+          <InfoIcon />
+        </button>
+      </div>
+      
       {/* Conditionally render the Basemap switcher */} 
       {isSwitcherVisible && (
           <BasemapSwitcher 
@@ -203,6 +221,69 @@ const Toolbar: React.FC<ToolbarProps> = ({
             }}
             onClose={() => setIsTemperatureYearSelectorVisible(false)}
           />
+        </div>
+      )}
+      
+      {/* Info Modal */}
+      {isInfoModalVisible && (
+        <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 z-50 w-80">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">About This Project</h2>
+              <button 
+                onClick={() => setIsInfoModalVisible(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <h3 className="font-semibold">Impacts of Wildfire in California</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                This interactive map website focuses on California wildfire distribution, it also allows users to interact with historical wildfire spatial and temporal data, explore the causes and impacts of wildfire.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold">Features</h3>
+                <ul className="list-disc pl-5 text-sm text-gray-600 dark:text-gray-300">
+                  <li>Interactive wildfire perimeter visualization</li>
+                  <li>Health impact assessment (asthma prevalence)</li>
+                  <li>Temperature anomaly analysis</li>
+                  <li>Spatial-temporal analytical tools</li>
+                </ul>
+              </div>
+              
+              
+              <div>
+                <h3 className="font-semibold">Research Group</h3>
+                <ul className="list-disc pl-5 text-sm text-gray-600 dark:text-gray-300">
+                  <li>Yuan Gao - <a href="mailto:gao342@wisc.edu" className="text-blue-500 hover:underline">gao342@wisc.edu</a></li>
+                  <li>Yulong Jiao - <a href="mailto:yjiao37@wisc.edu" className="text-blue-500 hover:underline">yjiao37@wisc.edu</a></li>
+                  <li>Haiyue Liu - <a href="mailto:haiyueliu1122@gmail.com" className="text-blue-500 hover:underline">haiyueliu1122@gmail.com</a></li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold">Links</h3>
+                <div className="flex flex-col space-y-2 mt-2">
+                  <a href="https://github.com/Heyweol/impacts-of-wildfire-california" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                    GitHub Repository
+                  </a>
+                  {/* <a href="https://cal-fire.gov" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                    CAL FIRE
+                  </a>
+                  <a href="https://www.cdph.ca.gov" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                    CDPH
+                  </a> */}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

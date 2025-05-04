@@ -1,0 +1,11 @@
+{
+  "stations": [
+    {"id": "2", "name": "FivePoints", "region": "San Joaquin Valley", "latitude": 36.3344, "longitude": -120.1125},
+    {"id": "5", "name": "Shafter", "region": "San Joaquin Valley", "latitude": 35.5308, "longitude": -119.2781},
+    {"id": "6", "name": "Davis", "region": "Sacramento Valley", "latitude": 38.5358, "longitude": -121.7763},
+    {"id": "7", "name": "Firebaugh/Telles", "region": "San Joaquin Valley", "latitude": 36.8519, "longitude": -120.5911},
+    {"id": "12", "name": "Durham", "region": "Sacramento Valley", "latitude": 39.6089, "longitude": -121.8244},
+    {"id": "13", "name": "Camino", "region": "Sierra Foothill", "latitude": 38.7547, "longitude": -120.7333},
+    {"id": "15", "name": "Stratford", "region": "San Joaquin Valley", "latitude": 36.1578, "longitude": -119.8514}
+  ]
+}
